@@ -7,4 +7,10 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  // THÊM ĐOẠN NÀY ĐỂ TẮT HOÀN TOÀN LUẬT BÁO ĐỎ OAN UỔNG:
+  {
+    rules: {
+      'import/no-unresolved': 'off',
+    },
+  },
 ]);

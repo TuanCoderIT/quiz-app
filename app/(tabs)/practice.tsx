@@ -6,6 +6,7 @@ import { FilterChip } from '../../src/components/FilterChip';
 import { CategoryCard } from '../../src/components/CategoryCard';
 import { PracticeQuizCard } from '../../src/components/PracticeQuizCard';
 import { useQuizStore } from '../../src/stores/quiz.store';
+import { useRouter } from 'expo-router';
 
 const difficultyMap: Record<string, 'Dễ' | 'Trung bình' | 'Khó'> = {
   'Beginner': 'Dễ',
@@ -23,6 +24,7 @@ const categoryIconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const PracticeScreen = () => {
+  const router = useRouter();
   const { exams, categories, fetchQuizzes, fetchCategories, isLoading } = useQuizStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | number>('all');
   const [activeDifficulty, setActiveDifficulty] = useState('Tất cả');
@@ -149,7 +151,7 @@ const PracticeScreen = () => {
                 difficulty={difficultyMap[quiz.difficulty] || 'Dễ'}
                 questionCount={quiz.questions}
                 timeEstimate={`${quiz.duration} phút`}
-              />
+                onPress={() => router.push(`/quiz/${quiz.id}`)} id={''}              />
             ))
           ) : (
             <View className="items-center justify-center py-10">

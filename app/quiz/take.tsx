@@ -14,6 +14,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { QuestionItem } from "../../src/features/quiz/components/QuestionItem";
+import {
+  QuizResultQuestionStatus,
+  QuizResultScreen,
+  QuizResultSummary,
+} from "../../src/features/quiz/components/QuizResultScreen";
 import { getQuizById, submitQuizResult } from "../../src/features/quiz/api";
 import {
   QuizAnswerSubmission,
@@ -22,15 +27,6 @@ import {
 } from "../../src/features/quiz/types";
 
 type QuizAnswers = Record<number, string>;
-
-type ResultSummary = {
-  score: number;
-  total: number;
-  percentage: number;
-  timeSpent: number;
-  timedOut: boolean;
-  needsReview: boolean;
-};
 
 const formatTimer = (seconds: number) => {
   const safeSeconds = Math.max(0, seconds);
@@ -115,6 +111,78 @@ const getEditDistance = (a: string, b: string) => {
 
 const getQuestionType = (question: QuizQuestion) => question.type || "multiple_choice";
 
+const OPTION_KEYS = ["A", "B", "C", "D", "E", "F"];
+
+const getQuestionOptions = (question: QuizQuestion) => {
+  if (Array.isArray(question.options)) {
+    return question.options
+      .filter((value) => String(value ?? "").trim().length > 0)
+      .map((value, index) => [
+        OPTION_KEYS[index] || String(index + 1),
+        String(value),
+      ]);
+  }
+
+  if (question.options && Object.keys(question.options).length > 0) {
+    return Object.entries(question.options).map(([key, value]) => [
+      String(key),
+      String(value),
+    ]);
+  }
+
+  return [];
+};
+
+const formatAnswerDisplay = (
+  question: QuizQuestion,
+  answer: QuizQuestion["answer"] | string | undefined,
+  fallback = "Chưa trả lời"
+) => {
+  const rawAnswer = String(answer ?? "").trim();
+
+  if (!rawAnswer) {
+    return fallback;
+  }
+
+  const matchedOption = getQuestionOptions(question).find(
+    ([key, value]) =>
+      normalizeTextAnswer(key) === normalizeTextAnswer(rawAnswer) ||
+      normalizeTextAnswer(value) === normalizeTextAnswer(rawAnswer)
+  );
+
+  if (matchedOption) {
+    const [key, value] = matchedOption;
+    return `${key}. ${value}`;
+  }
+
+  return rawAnswer;
+};
+
+const getQuestionResultStatus = (
+  question: QuizQuestion,
+  selectedAnswer?: string
+): QuizResultQuestionStatus => {
+  const questionType = getQuestionType(question);
+
+  if (questionType === "essay") {
+    return "review";
+  }
+
+  if (!isAnswerFilled(selectedAnswer)) {
+    return "incorrect";
+  }
+
+  if (questionType === "short_answer") {
+    return isShortAnswerCorrect(String(selectedAnswer), question.answer)
+      ? "correct"
+      : "incorrect";
+  }
+
+  return normalizeTextAnswer(selectedAnswer) === normalizeTextAnswer(question.answer)
+    ? "correct"
+    : "incorrect";
+};
+
 const buildAnswerSubmissions = (
   questions: QuizQuestion[],
   answers: QuizAnswers
@@ -140,7 +208,7 @@ const QuizTakingScreen = () => {
   const [answers, setAnswers] = useState<QuizAnswers>({});
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [resultSummary, setResultSummary] = useState<ResultSummary | null>(null);
+  const [resultSummary, setResultSummary] = useState<QuizResultSummary | null>(null);
   const hasFinishedRef = useRef(false);
 
   const questions = useMemo(() => sortQuestions(quiz?.questions || []), [quiz]);
@@ -191,7 +259,7 @@ const QuizTakingScreen = () => {
   }, [loadQuiz]);
 
   const calculateResult = useCallback(
-    (remainingSeconds: number, timedOut: boolean): ResultSummary | null => {
+    (remainingSeconds: number, timedOut: boolean): QuizResultSummary | null => {
       if (!quiz || totalQuestions === 0) {
         return null;
       }
@@ -219,6 +287,19 @@ const QuizTakingScreen = () => {
       const percentage =
         autoGradableTotal > 0 ? Math.round((score / autoGradableTotal) * 100) : 0;
       const timeSpent = Math.max(0, getDurationSeconds(quiz) - remainingSeconds);
+      const resultQuestions = questions.map((question, index) => {
+        const selected = answers[question.id];
+
+        return {
+          questionId: question.id,
+          order: index + 1,
+          content: question.content,
+          userAnswer: formatAnswerDisplay(question, selected),
+          correctAnswer: formatAnswerDisplay(question, question.answer, "Chưa có đáp án"),
+          explanation: question.explanation,
+          status: getQuestionResultStatus(question, selected),
+        };
+      });
 
       return {
         score,
@@ -227,6 +308,7 @@ const QuizTakingScreen = () => {
         timeSpent,
         timedOut,
         needsReview: hasEssayQuestion,
+        questions: resultQuestions,
       };
     },
     [answers, hasEssayQuestion, questions, quiz, totalQuestions]
@@ -395,104 +477,16 @@ const QuizTakingScreen = () => {
   }
 
   if (resultSummary) {
-    const passed = resultSummary.percentage >= (quiz.passing_score || 70);
-
     return (
-      <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
-        >
-          <View className="mt-5 mb-8 flex-row items-center justify-between">
-            <Pressable
-              onPress={() => router.back()}
-              className="w-11 h-11 rounded-2xl bg-white border border-gray-100 items-center justify-center"
-            >
-              <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            </Pressable>
-            <Text className="text-text-primary text-lg font-bold">Kết quả</Text>
-            <View className="w-11" />
-          </View>
-
-          <LinearGradient
-            colors={passed ? ["#4F46E5", "#7C3AED"] : ["#64748B", "#334155"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 28, padding: 24, marginBottom: 20 }}
-          >
-            <Text className="text-white/75 text-sm font-bold uppercase mb-3">
-              {resultSummary.timedOut ? "Hết thời gian" : "Hoàn thành"}
-            </Text>
-            <Text className="text-white text-5xl font-bold mb-2">
-              {resultSummary.percentage}%
-            </Text>
-            <Text className="text-white/90 text-base leading-6">
-              {resultSummary.total > 0
-                ? `Bạn đúng ${resultSummary.score}/${resultSummary.total} câu tự chấm trong ${formatTimer(resultSummary.timeSpent)}.`
-                : `Bài làm đã được ghi nhận trong ${formatTimer(resultSummary.timeSpent)}.`}
-            </Text>
-          </LinearGradient>
-
-          {resultSummary.needsReview ? (
-            <View className="bg-accent/10 rounded-2xl border border-accent/20 p-4 mb-5">
-              <Text className="text-accent font-semibold leading-5">
-                Bài có câu tự luận đang chờ giáo viên review.
-              </Text>
-            </View>
-          ) : null}
-
-          <View className="bg-white rounded-3xl border border-gray-100 p-5 mb-5">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-text-primary font-bold text-base">
-                Trạng thái
-              </Text>
-              <Text
-                className={`font-bold ${passed ? "text-success" : "text-warning"}`}
-              >
-                {passed ? "Đạt" : "Cần luyện thêm"}
-              </Text>
-            </View>
-            <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <View
-                className={passed ? "h-full bg-success" : "h-full bg-warning"}
-                style={{ width: `${resultSummary.percentage}%` }}
-              />
-            </View>
-            <Text className="text-text-secondary text-sm mt-3">
-              Điểm đạt yêu cầu: {quiz.passing_score || 70}%
-            </Text>
-          </View>
-
-          {isSubmitting ? (
-            <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-5 flex-row items-center">
-              <ActivityIndicator color="#4F46E5" />
-              <Text className="text-text-secondary font-medium ml-3">
-                Đang lưu kết quả...
-              </Text>
-            </View>
-          ) : null}
-
-          {submitError ? (
-            <View className="bg-warning/10 rounded-2xl border border-warning/20 p-4 mb-5">
-              <Text className="text-warning font-semibold">{submitError}</Text>
-            </View>
-          ) : null}
-
-          <Pressable onPress={handleRestart} className="bg-primary rounded-2xl py-4 mb-3">
-            <Text className="text-white text-center text-base font-bold">
-              Làm lại quiz
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.replace("/(tabs)/practice")}
-            className="bg-primary/10 rounded-2xl py-4"
-          >
-            <Text className="text-primary text-center text-base font-bold">
-              Về danh sách luyện tập
-            </Text>
-          </Pressable>
-        </ScrollView>
-      </SafeAreaView>
+      <QuizResultScreen
+        passingScore={quiz.passing_score || 70}
+        resultSummary={resultSummary}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
+        onBack={() => router.back()}
+        onRestart={handleRestart}
+        onPracticePress={() => router.replace("/(tabs)/practice")}
+      />
     );
   }
 

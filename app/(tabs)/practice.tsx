@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { FilterChip } from '../../src/components/FilterChip';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryCard } from '../../src/components/CategoryCard';
+import { FilterChip } from '../../src/components/FilterChip';
 import { PracticeQuizCard } from '../../src/components/PracticeQuizCard';
 import { useQuizStore } from '../../src/stores/quiz.store';
-import { useRouter } from 'expo-router';
 
 const difficultyMap: Record<string, 'Dễ' | 'Trung bình' | 'Khó'> = {
   'Beginner': 'Dễ',
@@ -33,7 +33,7 @@ const PracticeScreen = () => {
   React.useEffect(() => {
     fetchQuizzes();
     fetchCategories();
-  }, []);
+  }, [fetchCategories, fetchQuizzes]);
 
   const filteredExams = useMemo(() => {
     return exams.filter(quiz => {
@@ -101,7 +101,7 @@ const PracticeScreen = () => {
         </View>
 
         {/* Topic Categories */}
-        <View className="mb-10">
+        <View className="mb-9 pt-2">
           <Text className="px-5 text-text-primary text-xl font-bold mb-4">
             Chủ đề phổ biến
           </Text>
@@ -151,7 +151,14 @@ const PracticeScreen = () => {
                 difficulty={difficultyMap[quiz.difficulty] || 'Dễ'}
                 questionCount={quiz.questions}
                 timeEstimate={`${quiz.duration} phút`}
-                onPress={() => router.push(`/quiz/${quiz.id}`)} id={''}              />
+                id={quiz.id}
+                onPress={() =>
+                  router.push({
+                    pathname: '/quiz/take',
+                    params: { id: String(quiz.id) },
+                  })
+                }
+              />
             ))
           ) : (
             <View className="items-center justify-center py-10">

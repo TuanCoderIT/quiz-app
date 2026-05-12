@@ -1,10 +1,10 @@
-import axios from "axios";
+import { create } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000/api";
 console.log("DEBUG: Base URL is set to:", BASE_URL);
 
-export const axiosAPI = axios.create({
+export const axiosAPI = create({
   baseURL: BASE_URL,
   timeout: 10000,
   headers: {
@@ -37,17 +37,22 @@ axiosAPI.interceptors.request.use(
 axiosAPI.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      // Server responded with a status code outside the 2xx range
-      console.error("API Error Status:", error.response.status);
-      console.error("API Error Data:", error.response.data);
-    } else if (error.request) {
-      // Request was made but no response was received
-      console.error("API No Response. Request URL:", error.config.url);
-      console.error("API Request Info:", error.request);
-    } else {
-      console.error("API Setup Error:", error.message);
+    const status = error.response?.status;
+    const isExpectedClientError = status === 401 || status === 422;
+
+    if (__DEV__ && !isExpectedClientError) {
+      if (error.response) {
+        // Server responded with a status code outside the 2xx range
+        console.warn("API Error Status:", error.response.status);
+        console.warn("API Error Data:", error.response.data);
+      } else if (error.request) {
+        // Request was made but no response was received
+        console.warn("API No Response. Request URL:", error.config.url);
+      } else {
+        console.warn("API Setup Error:", error.message);
+      }
     }
+
     return Promise.reject(error);
   }
 );

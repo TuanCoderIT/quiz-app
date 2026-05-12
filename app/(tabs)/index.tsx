@@ -23,8 +23,7 @@ const HomeScreen = () => {
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        className="px-5"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
       >
         {/* Header Greeting */}
         <View className="flex-row items-center justify-between mt-6 mb-8">
@@ -58,8 +57,12 @@ const HomeScreen = () => {
           colors={["#4F46E5", "#7C3AED"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          className="p-6 mb-8"
-          style={{ borderRadius: 20, overflow: "hidden" }}
+          style={{
+            borderRadius: 20,
+            marginBottom: 32,
+            overflow: "hidden",
+            padding: 24,
+          }}
         >
           <View className="flex-row justify-between items-start mb-4">
             <View className="flex-1 mr-4">

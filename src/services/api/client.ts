@@ -1,7 +1,8 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL = "http://172.17.0.1:8000/api"; // Thay bằng IP máy của bạn nhé
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000/api";
+console.log("DEBUG: Base URL is set to:", BASE_URL);
 
 export const axiosAPI = axios.create({
   baseURL: BASE_URL,
@@ -12,17 +13,41 @@ export const axiosAPI = axios.create({
   }
 });
 
+// Request Interceptor
 axiosAPI.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      const authData = await AsyncStorage.getItem("auth-storage");
+      if (authData) {
+        const { state } = JSON.parse(authData);
+        if (state && state.token) {
+          config.headers.Authorization = `Bearer ${state.token}`;
+        }
       }
     } catch (error) {
       console.error("Lỗi lấy token từ storage:", error);
     }
+    console.log(`DEBUG: Making ${config.method?.toUpperCase()} request to ${config.url}`);
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response Interceptor for debugging
+axiosAPI.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with a status code outside the 2xx range
+      console.error("API Error Status:", error.response.status);
+      console.error("API Error Data:", error.response.data);
+    } else if (error.request) {
+      // Request was made but no response was received
+      console.error("API No Response. Request URL:", error.config.url);
+      console.error("API Request Info:", error.request);
+    } else {
+      console.error("API Setup Error:", error.message);
+    }
+    return Promise.reject(error);
+  }
 );

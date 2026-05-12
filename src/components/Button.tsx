@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
+import { TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
   useSharedValue, 
@@ -52,7 +52,11 @@ export const Button: React.FC<ButtonProps> = ({
           colors={['#4F46E5', '#7C3AED']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          className="py-4 items-center justify-center"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 16,
+          }}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />

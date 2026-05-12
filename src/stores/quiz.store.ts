@@ -24,7 +24,6 @@ export const useQuizStore = create<QuizState>((set) => ({
     set({ isLoading: true });
     try {
       const exams = await getQuizzes();
-      console.log("Dữ liệu Quiz từ API:", exams);
       set({ exams });
     } catch (error) {
       console.error("Lỗi lấy danh sách bài quiz:", error);
@@ -36,7 +35,6 @@ export const useQuizStore = create<QuizState>((set) => ({
   fetchCategories: async () => {
     try {
       const categories = await getCategories();
-      console.log("Dữ liệu Categories từ API:", categories);
       // Thêm option "Tất cả" vào danh sách categories nếu cần
       set({ categories: [{ id: 'all', name: 'Tất cả' }, ...categories] });
     } catch (error) {

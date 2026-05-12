@@ -10,6 +10,7 @@ export interface Quiz {
   difficulty: string;
   duration: number;
   questions: number;
+  questions_count?: number;
   progress: number;
   color: string;
 }

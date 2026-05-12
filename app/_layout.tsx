@@ -1,12 +1,11 @@
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import '../global.css';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
-
-import { useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   useEffect(() => {

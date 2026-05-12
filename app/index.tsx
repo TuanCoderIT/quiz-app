@@ -1,17 +1,15 @@
-import React, { useEffect } from 'react';
-import { View, Text, ActivityIndicator, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
-  withSpring,
-  Easing,
-  interpolate,
-  Extrapolate
-} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useEffect } from 'react';
+import { ActivityIndicator, Image, Text, View } from 'react-native';
+import Animated, {
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming
+} from 'react-native-reanimated';
 
 const SplashScreen = () => {
   const router = useRouter();
@@ -22,6 +20,17 @@ const SplashScreen = () => {
   const contentTranslateY = useSharedValue(20);
   const contentOpacity = useSharedValue(0);
   const footerOpacity = useSharedValue(0);
+
+  const checkAuthStatus = useCallback(async () => {
+    // TODO: Implement actual auth check with SecureStore or Zustand
+    const isLoggedIn = false; // Mocked value
+
+    if (isLoggedIn) {
+      router.replace('/flashcards');
+    } else {
+      router.replace('/login');
+    }
+  }, [router]);
 
   useEffect(() => {
     // Sequence animations
@@ -42,18 +51,14 @@ const SplashScreen = () => {
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, []);
-
-  const checkAuthStatus = async () => {
-    // TODO: Implement actual auth check with SecureStore or Zustand
-    const isLoggedIn = false; // Mocked value
-    
-    if (isLoggedIn) {
-      router.replace('/(tabs)');
-    } else {
-      router.replace('/(auth)/login');
-    }
-  };
+  }, [
+    checkAuthStatus,
+    contentOpacity,
+    contentTranslateY,
+    footerOpacity,
+    logoOpacity,
+    logoScale,
+  ]);
 
   const logoStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,
@@ -74,7 +79,12 @@ const SplashScreen = () => {
       <StatusBar style="light" />
       <LinearGradient
         colors={['#4F46E5', '#7C3AED']}
-        className="flex-1 items-center justify-between py-16"
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 64,
+        }}
       >
         {/* Empty view for top spacing */}
         <View />

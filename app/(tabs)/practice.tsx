@@ -1,49 +1,54 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FilterChip } from '../../src/components/FilterChip';
 import { CategoryCard } from '../../src/components/CategoryCard';
 import { PracticeQuizCard } from '../../src/components/PracticeQuizCard';
+import { useQuizStore } from '../../src/stores/quiz.store';
 
-const topics = [
-  { label: 'Toán học', icon: 'calculator-outline' as const },
-  { label: 'Tiếng Anh', icon: 'language-outline' as const },
-  { label: 'Lịch sử', icon: 'time-outline' as const },
-  { label: 'Khoa học', icon: 'flask-outline' as const },
-  { label: 'Lập trình', icon: 'code-slash-outline' as const },
-];
+const difficultyMap: Record<string, 'Dễ' | 'Trung bình' | 'Khó'> = {
+  'Beginner': 'Dễ',
+  'Intermediate': 'Trung bình',
+  'Advanced': 'Khó'
+};
 
-const mockQuizzes = [
-  {
-    id: '1',
-    title: 'Đại số cơ bản',
-    description: 'Kiểm tra kiến thức về phương trình bậc nhất và các phép tính cơ bản.',
-    difficulty: 'Dễ' as const,
-    questionCount: 10,
-    timeEstimate: '10 phút'
-  },
-  {
-    id: '2',
-    title: 'Ngữ pháp Tiếng Anh',
-    description: 'Ôn tập về các thì trong tiếng Anh và cấu trúc câu phức tạp.',
-    difficulty: 'Trung bình' as const,
-    questionCount: 15,
-    timeEstimate: '15 phút'
-  },
-  {
-    id: '3',
-    title: 'React Native Advanced',
-    description: 'Thử thách với các khái niệm chuyên sâu về Reanimated và Performance.',
-    difficulty: 'Khó' as const,
-    questionCount: 20,
-    timeEstimate: '25 phút'
-  }
-];
+const categoryIconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+  'Toán học': 'calculator-outline',
+  'Tiếng Anh': 'language-outline',
+  'Lập trình': 'code-slash-outline',
+  'Lịch sử': 'time-outline',
+  'Khoa học': 'flask-outline',
+  'Tất cả': 'apps-outline'
+};
 
 const PracticeScreen = () => {
-  const [activeFilter, setActiveFilter] = useState('Tất cả');
+  const { exams, categories, fetchQuizzes, fetchCategories, isLoading } = useQuizStore();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | number>('all');
+  const [activeDifficulty, setActiveDifficulty] = useState('Tất cả');
   const [searchQuery, setSearchQuery] = useState('');
+
+  React.useEffect(() => {
+    fetchQuizzes();
+    fetchCategories();
+  }, []);
+
+  const filteredExams = useMemo(() => {
+    return exams.filter(quiz => {
+      // Filter by Category
+      const matchesCategory = selectedCategoryId === 'all' || quiz.category.id === selectedCategoryId;
+      
+      // Filter by Difficulty
+      const displayDifficulty = difficultyMap[quiz.difficulty] || 'Dễ';
+      const matchesDifficulty = activeDifficulty === 'Tất cả' || displayDifficulty === activeDifficulty;
+      
+      // Filter by Search Query
+      const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           quiz.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesCategory && matchesDifficulty && matchesSearch;
+    });
+  }, [exams, selectedCategoryId, activeDifficulty, searchQuery]);
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
@@ -86,8 +91,8 @@ const PracticeScreen = () => {
               <FilterChip
                 key={filter}
                 label={filter}
-                active={activeFilter === filter}
-                onPress={() => setActiveFilter(filter)}
+                active={activeDifficulty === filter}
+                onPress={() => setActiveDifficulty(filter)}
               />
             ))}
           </ScrollView>
@@ -103,11 +108,13 @@ const PracticeScreen = () => {
             showsHorizontalScrollIndicator={false} 
             className="px-5"
           >
-            {topics.map((topic) => (
+            {categories.map((category) => (
               <CategoryCard
-                key={topic.label}
-                label={topic.label}
-                icon={topic.icon}
+                key={category.id}
+                label={category.name}
+                icon={categoryIconMap[category.name] || 'book-outline'}
+                onPress={() => setSelectedCategoryId(category.id)}
+                active={selectedCategoryId === category.id}
               />
             ))}
           </ScrollView>
@@ -115,19 +122,43 @@ const PracticeScreen = () => {
 
         {/* Quiz List */}
         <View className="px-5">
-          <Text className="text-text-primary text-xl font-bold mb-6">
-            Danh sách bài tập
-          </Text>
-          {mockQuizzes.map((quiz) => (
-            <PracticeQuizCard
-              key={quiz.id}
-              title={quiz.title}
-              description={quiz.description}
-              difficulty={quiz.difficulty}
-              questionCount={quiz.questionCount}
-              timeEstimate={quiz.timeEstimate}
-            />
-          ))}
+          <View className="flex-row items-center justify-between mb-6">
+            <Text className="text-text-primary text-xl font-bold">
+              Danh sách bài kiểm tra
+            </Text>
+            {!isLoading && (
+              <Text className="text-text-secondary text-sm">
+                {filteredExams.length} bài
+              </Text>
+            )}
+          </View>
+          
+          {isLoading ? (
+            <View className="items-center justify-center py-20">
+              <ActivityIndicator size="large" color="#4F46E5" />
+              <Text className="text-text-secondary mt-4 text-base font-medium">
+                Đang tải dữ liệu...
+              </Text>
+            </View>
+          ) : filteredExams.length > 0 ? (
+            filteredExams.map((quiz) => (
+              <PracticeQuizCard
+                key={quiz.id}
+                title={quiz.title}
+                description={quiz.description}
+                difficulty={difficultyMap[quiz.difficulty] || 'Dễ'}
+                questionCount={quiz.questions}
+                timeEstimate={`${quiz.duration} phút`}
+              />
+            ))
+          ) : (
+            <View className="items-center justify-center py-10">
+              <Ionicons name="search-outline" size={48} color="#94A3B8" />
+              <Text className="text-text-secondary mt-4 text-base">
+                Không tìm thấy bài kiểm tra nào phù hợp.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

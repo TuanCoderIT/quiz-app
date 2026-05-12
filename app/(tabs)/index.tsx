@@ -1,27 +1,27 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../../src/stores/auth.store';
-import { StatsCard } from '../../src/components/StatsCard';
-import { QuizCard } from '../../src/components/QuizCard';
-import { useRouter } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { QuizCard } from "../../src/components/QuizCard";
+import { StatsCard } from "../../src/components/StatsCard";
+import { useAuthStore } from "../../src/stores/auth.store";
 
 const HomeScreen = () => {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  
+
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Chào buổi sáng,';
-    if (hour < 18) return 'Chào buổi chiều,';
-    return 'Chào buổi tối, kk';
+    if (hour < 12) return "Chào buổi sáng,";
+    if (hour < 18) return "Chào buổi chiều,";
+    return "Chào buổi tối, bạn yêu";
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView 
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+      <ScrollView
         showsVerticalScrollIndicator={false}
         className="px-5"
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -33,14 +33,14 @@ const HomeScreen = () => {
               {getGreeting()}
             </Text>
             <Text className="text-text-primary text-3xl font-bold">
-              {user?.name || 'Bạn'} 👋
+              {user?.name || "Bạn"} 👋
             </Text>
             <Text className="text-text-secondary mt-1">
               Sẵn sàng để tiếp tục học chưa?
             </Text>
           </View>
-          <TouchableOpacity 
-            onPress={() => router.push('/(tabs)/profile')}
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/profile")}
             className="w-14 h-14 rounded-full border-2 border-primary/20 overflow-hidden"
           >
             {user?.avatar ? (
@@ -55,10 +55,11 @@ const HomeScreen = () => {
 
         {/* Continue Learning Card */}
         <LinearGradient
-          colors={['#4F46E5', '#7C3AED']}
+          colors={["#4F46E5", "#7C3AED"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          className="rounded-3xl p-6 mb-8 shadow-lg shadow-primary/30"
+          className="p-6 mb-8"
+          style={{ borderRadius: 20, overflow: "hidden" }}
         >
           <View className="flex-row justify-between items-start mb-4">
             <View className="flex-1 mr-4">
@@ -72,16 +73,16 @@ const HomeScreen = () => {
                 Đã hoàn thành 12/20 câu hỏi
               </Text>
             </View>
-            <View className="bg-white/20 p-2 rounded-full">
-              <Ionicons name="play" size={24} color="#FFFFFF" />
+            <View className="bg-white/20 p-2 rounded-xl">
+              <Ionicons name="play" size={24} color="white" />
             </View>
           </View>
-          
-          <View className="h-2 bg-white/20 rounded-full mb-6">
-            <View className="h-2 bg-white rounded-full w-[60%]" />
+
+          <View className="h-2 bg-white/20 rounded-full overflow-hidden mb-6">
+            <View className="h-full bg-white w-[60%]" />
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             className="bg-white py-3 rounded-xl items-center"
             activeOpacity={0.8}
           >
@@ -90,20 +91,29 @@ const HomeScreen = () => {
         </LinearGradient>
 
         {/* AI Quiz Generator Card */}
-        <TouchableOpacity 
+        <TouchableOpacity
           className="bg-accent/10 border border-accent/20 rounded-3xl p-6 mb-8 flex-row items-center"
           activeOpacity={0.8}
         >
           <View className="flex-1">
             <View className="flex-row items-center mb-2">
-              <Ionicons name="sparkles" size={20} color="#06B6D4" className="mr-2" />
-              <Text className="text-accent text-lg font-bold">Tạo Quiz với AI</Text>
+              <Ionicons
+                name="sparkles"
+                size={20}
+                color="#06B6D4"
+                className="mr-2"
+              />
+              <Text className="text-accent text-lg font-bold">
+                Tạo Quiz với AI
+              </Text>
             </View>
             <Text className="text-text-secondary text-sm">
               Tạo bộ câu hỏi thông minh chỉ trong vài giây.
             </Text>
             <TouchableOpacity className="mt-4 bg-accent px-4 py-2 rounded-lg self-start">
-              <Text className="text-white font-bold text-xs uppercase">Tạo ngay</Text>
+              <Text className="text-white font-bold text-xs uppercase">
+                Tạo ngay
+              </Text>
             </TouchableOpacity>
           </View>
           <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center shadow-sm">
@@ -113,31 +123,37 @@ const HomeScreen = () => {
 
         {/* Quick Stats */}
         <View className="mb-8">
-          <Text className="text-text-primary text-xl font-bold mb-4">Thống kê nhanh</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 px-5">
-            <StatsCard 
-              label="Đã hoàn thành" 
-              value="24" 
-              icon="checkmark-circle" 
-              color="#10B981" 
+          <Text className="text-text-primary text-xl font-bold mb-4">
+            Thống kê nhanh
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="-mx-5 px-5"
+          >
+            <StatsCard
+              label="Đã hoàn thành"
+              value="24"
+              icon="checkmark-circle"
+              color="#10B981"
             />
-            <StatsCard 
-              label="Tỉ lệ chính xác" 
-              value="85%" 
-              icon="trending-up" 
-              color="#4F46E5" 
+            <StatsCard
+              label="Tỉ lệ chính xác"
+              value="85%"
+              icon="trending-up"
+              color="#4F46E5"
             />
-            <StatsCard 
-              label="Chuỗi ngày" 
-              value="7" 
-              icon="flame" 
-              color="#F59E0B" 
+            <StatsCard
+              label="Chuỗi ngày"
+              value="7"
+              icon="flame"
+              color="#F59E0B"
             />
-            <StatsCard 
-              label="Điểm XP" 
-              value="1.2k" 
-              icon="star" 
-              color="#7C3AED" 
+            <StatsCard
+              label="Điểm XP"
+              value="1.2k"
+              icon="star"
+              color="#7C3AED"
             />
           </ScrollView>
         </View>
@@ -145,29 +161,31 @@ const HomeScreen = () => {
         {/* Featured Quizzes */}
         <View>
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-text-primary text-xl font-bold">Quiz nổi bật</Text>
-            <TouchableOpacity>
+            <Text className="text-text-primary text-xl font-bold">
+              Quiz nổi bật
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/(tabs)/practice")}>
               <Text className="text-primary font-bold">Xem tất cả</Text>
             </TouchableOpacity>
           </View>
-          
-          <QuizCard 
-            title="Lập trình React Native" 
-            category="Mobile App" 
-            difficulty="Trung bình" 
-            questionCount={15} 
+
+          <QuizCard
+            title="Lập trình React Native"
+            category="Mobile App"
+            difficulty="Trung bình"
+            questionCount={15}
           />
-          <QuizCard 
-            title="Machine Learning 101" 
-            category="AI & Data" 
-            difficulty="Khó" 
-            questionCount={20} 
+          <QuizCard
+            title="Machine Learning 101"
+            category="AI & Data"
+            difficulty="Khó"
+            questionCount={20}
           />
-          <QuizCard 
-            title="Lịch sử thế giới" 
-            category="Xã hội" 
-            difficulty="Dễ" 
-            questionCount={10} 
+          <QuizCard
+            title="Lịch sử thế giới"
+            category="Xã hội"
+            difficulty="Dễ"
+            questionCount={10}
           />
         </View>
       </ScrollView>

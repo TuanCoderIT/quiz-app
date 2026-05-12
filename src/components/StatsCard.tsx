@@ -13,7 +13,7 @@ interface StatsCardProps {
 export const StatsCard: React.FC<StatsCardProps> = ({ label, value, icon, color, className = '' }) => {
   return (
     <View 
-      className={`bg-white p-4 rounded-2xl shadow-sm border border-gray-50 mr-3 w-32 ${className}`}
+      className={`bg-white p-4 rounded-xl shadow-sm border border-gray-50 mr-3 w-32 ${className}`}
     >
       <View 
         className="w-10 h-10 rounded-full items-center justify-center mb-3"

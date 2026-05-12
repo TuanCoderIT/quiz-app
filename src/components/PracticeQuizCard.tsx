@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 interface PracticeQuizCardProps {
+  id: string | number;
   title: string;
   description: string;
   difficulty: 'Dễ' | 'Trung bình' | 'Khó';
@@ -12,6 +14,7 @@ interface PracticeQuizCardProps {
 }
 
 export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
+  id,
   title,
   description,
   difficulty,
@@ -63,11 +66,11 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
       </View>
 
       <TouchableOpacity 
-        onPress={onPress}
+        onPress={onPress || (() => router.push(`/quiz/${id}`))}
         activeOpacity={0.8}
         className="bg-primary/5 py-3.5 rounded-2xl flex-row items-center justify-center border border-primary/10"
       >
-        <Text className="text-primary font-bold mr-2 text-base">Bắt đầu ngay</Text>
+        <Text className="text-primary font-bold mr-2 text-base">Xem chi tiết</Text>
         <Ionicons name="chevron-forward" size={18} color="#4F46E5" />
       </TouchableOpacity>
     </View>

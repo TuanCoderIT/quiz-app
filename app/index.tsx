@@ -26,7 +26,7 @@ const SplashScreen = () => {
     const isLoggedIn = false; // Mocked value
 
     if (isLoggedIn) {
-      router.replace('/flashcards');
+      router.replace('/(tabs)/flashcard');
     } else {
       router.replace('/login');
     }

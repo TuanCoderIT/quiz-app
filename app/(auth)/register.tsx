@@ -18,7 +18,7 @@ const RegisterScreen = () => {
     // Simulate registration
     setTimeout(() => {
       setLoading(false);
-      router.replace('/flashcards');
+      router.replace('/(tabs)/flashcard');
     }, 1500);
   };
 

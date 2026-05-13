@@ -1,25 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  StatusBar,
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  LayoutChangeEvent
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
+import Animated, {
   FadeIn,
   FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getQuizById } from '../../src/features/quiz/api';
 import { QuizInfo } from '../../src/types/quiz';
 
@@ -50,7 +50,7 @@ export default function QuizDetailScreen() {
     try {
       setLoading(true);
       const data = await getQuizById(Number(id));
-      setQuiz(data.data || data);
+      setQuiz(data as unknown as QuizInfo);
     } catch (error) {
       console.error("Lỗi lấy chi tiết quiz:", error);
     } finally {
@@ -121,6 +121,13 @@ export default function QuizDetailScreen() {
 
   const btn = getButtonContent();
 
+  const handleStartQuiz = () => {
+    router.push({
+      pathname: '/quiz/take',
+      params: { id: String(quiz.id) },
+    });
+  };
+
   return (
     <View className="flex-1 bg-[#F8FAFC]">
       <StatusBar barStyle="dark-content" />
@@ -182,6 +189,7 @@ export default function QuizDetailScreen() {
         <View onLayout={handleLayout} className="mt-8">
           <TouchableOpacity 
             disabled={btn.disabled}
+            onPress={handleStartQuiz}
             className={`flex-row items-center justify-center py-4 rounded-2xl shadow-lg shadow-amber-500/20 ${btn.disabled ? 'bg-slate-200' : ''}`}
             style={{ backgroundColor: btn.disabled ? undefined : btn.color }}
           >
@@ -271,6 +279,7 @@ export default function QuizDetailScreen() {
       >
         <TouchableOpacity 
           disabled={btn.disabled}
+          onPress={handleStartQuiz}
           className="flex-row items-center justify-center py-4 rounded-2xl shadow-lg shadow-primary/20"
           style={{ backgroundColor: btn.disabled ? '#E2E8F0' : btn.color }}
         >

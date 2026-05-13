@@ -51,7 +51,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="flashcards"
+        name="flashcard"
         options={{
           title: 'Cards',
           tabBarIcon: ({ color, size, focused }) => (

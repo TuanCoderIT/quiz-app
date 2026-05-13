@@ -337,6 +337,9 @@ const QuizTakingScreen = () => {
           time_spent: summary.timeSpent,
           completed_at: new Date().toISOString(),
           answers: buildAnswerSubmissions(questions, answers),
+          score: summary.score,
+          total: summary.total,
+          percentage: summary.percentage,
         });
       } catch (saveError) {
         console.error("Lỗi lưu kết quả quiz:", saveError);

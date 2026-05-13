@@ -20,7 +20,6 @@ export const useAuthStore = create<AuthState>()(
           set({ token: data.token, user: data.user });
           axiosAPI.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
         } catch (error) {
-          console.error("Lỗi đăng nhập:", error);
           throw error; // Quăng lỗi ra ngoài để UI hiển thị thông báo lỗi
         } finally {
           set({ isLoading: false });
@@ -34,7 +33,6 @@ export const useAuthStore = create<AuthState>()(
           set({ token: data.token, user: data.user });
           axiosAPI.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
         } catch (error) {
-          console.error("Lỗi đăng ký:", error);
           throw error;
         } finally {
           set({ isLoading: false });

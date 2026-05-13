@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
 interface FilterChipProps {
   label: string;
@@ -9,22 +9,23 @@ interface FilterChipProps {
 
 export const FilterChip: React.FC<FilterChipProps> = ({ label, active, onPress }) => {
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.8}
-      className={`px-6 py-2.5 rounded-full mr-2.5 border ${
-        active 
-          ? 'bg-primary border-primary shadow-sm shadow-primary/20' 
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      className={`min-h-10 px-6 py-2.5 rounded-full mr-2.5 border items-center justify-center ${
+        active
+          ? 'bg-primary border-primary shadow-sm shadow-primary/20'
           : 'bg-white border-gray-100'
       }`}
     >
-      <Text 
+      <Text
         className={`text-sm font-bold ${
           active ? 'text-white' : 'text-text-secondary'
         }`}
       >
         {label}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 };

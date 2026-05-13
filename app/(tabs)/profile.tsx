@@ -6,7 +6,6 @@ import {
   TouchableOpacity, 
   Alert, 
   StatusBar,
-  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +14,6 @@ import { Image } from 'expo-image';
 import Animated, { 
   FadeIn, 
   FadeInUp, 
-  Layout 
 } from 'react-native-reanimated';
 import { useAuthStore } from '../../src/stores/auth.store';
 import ProfileMenuItem from '../../src/components/profile/ProfileMenuItem';
@@ -69,8 +67,7 @@ export default function ProfileScreen() {
             colors={['#4F46E5', '#7C3AED']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="p-6"
-            style={{ borderRadius: 20 }}
+            style={{ borderRadius: 20, padding: 24 }}
           >
             <View className="flex-row items-center justify-between mb-6 px-3">
               <View className="flex-row items-center">

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
 
@@ -79,7 +79,7 @@ const ForgotPasswordScreen = () => {
             ) : (
               <Button 
                 title="Back to Login" 
-                onPress={() => router.replace('/(auth)/login')} 
+                onPress={() => router.replace('/login')}
               />
             )}
           </View>

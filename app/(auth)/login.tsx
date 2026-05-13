@@ -1,24 +1,88 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
+import { useAuthStore } from '../../src/stores/auth.store';
+
+const getLoginErrorMessage = (error: unknown) => {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'response' in error &&
+    error.response &&
+    typeof error.response === 'object' &&
+    'data' in error.response
+  ) {
+    const data = error.response.data as {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+
+    const firstFieldError = data.errors
+      ? Object.values(data.errors).flat()[0]
+      : undefined;
+
+    return firstFieldError || data.message || 'Không thể đăng nhập.';
+  }
+
+  return 'Không thể kết nối tới máy chủ. Vui lòng thử lại.';
+};
 
 const LoginScreen = () => {
   const router = useRouter();
+  const login = useAuthStore((state) => state.login);
+  const isAuthLoading = useAuthStore((state) => state.isLoading);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [formError, setFormError] = useState('');
+
+  const validateForm = () => {
+    const normalizedEmail = email.trim();
+    let isValid = true;
+
+    setEmailError('');
+    setPasswordError('');
+    setFormError('');
+
+    if (!normalizedEmail) {
+      setEmailError('Vui lòng nhập email.');
+      isValid = false;
+    } else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setEmailError('Email không hợp lệ.');
+      isValid = false;
+    }
+
+    if (!password) {
+      setPasswordError('Vui lòng nhập mật khẩu.');
+      isValid = false;
+    } else if (password.length < 8) {
+      setPasswordError('Mật khẩu tối thiểu 8 ký tự.');
+      isValid = false;
+    }
+
+    return isValid;
+  };
 
   const handleLogin = async () => {
-    setLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      setLoading(false);
-      router.replace('/(tabs)');
-    }, 1500);
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await login(email.trim(), password);
+      router.replace('/(tabs)/practice');
+    } catch (error) {
+      setFormError(getLoginErrorMessage(error));
+    }
   };
 
   return (
@@ -52,19 +116,37 @@ const LoginScreen = () => {
               label="Email Address"
               placeholder="name@example.com"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(value) => {
+                setEmail(value);
+                setEmailError('');
+                setFormError('');
+              }}
               icon="mail-outline"
               keyboardType="email-address"
+              error={emailError}
             />
             
             <Input
               label="Password"
               placeholder="Enter your password"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => {
+                setPassword(value);
+                setPasswordError('');
+                setFormError('');
+              }}
               icon="lock-closed-outline"
               secureTextEntry
+              error={passwordError}
             />
+
+            {formError ? (
+              <View className="bg-error/10 border border-error/20 rounded-2xl px-4 py-3 mb-5">
+                <Text className="text-error text-sm font-semibold">
+                  {formError}
+                </Text>
+              </View>
+            ) : null}
 
             <TouchableOpacity 
               onPress={() => router.push('/forgot-password')}
@@ -78,7 +160,7 @@ const LoginScreen = () => {
             <Button 
               title="Sign In" 
               onPress={handleLogin} 
-              loading={loading}
+              loading={isAuthLoading}
             />
           </View>
 

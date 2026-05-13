@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -31,10 +32,11 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
     }
   };
 
-  const styles = getDifficultyStyles();
+  const difficultyStyles = getDifficultyStyles();
 
   return (
-    <View className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm mb-5">
+    <View style={styles.card} className="p-5 rounded-3xl border shadow-sm mb-5">
+      <View style={styles.cardSheen} />
       <View className="flex-row justify-between items-start mb-3">
         <View className="flex-1 mr-2">
           <Text className="text-text-primary text-xl font-bold mb-1">
@@ -46,9 +48,9 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
         </View>
         <View 
           className="px-3 py-1.5 rounded-xl"
-          style={{ backgroundColor: styles.bg }}
+          style={{ backgroundColor: difficultyStyles.bg }}
         >
-          <Text className="font-bold text-xs" style={{ color: styles.text }}>
+          <Text className="font-bold text-xs" style={{ color: difficultyStyles.text }}>
             {difficulty}
           </Text>
         </View>
@@ -68,11 +70,55 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
       <TouchableOpacity 
         onPress={onPress || (() => router.push(`/quiz/${id}`))}
         activeOpacity={0.8}
-        className="bg-primary/5 py-3.5 rounded-2xl flex-row items-center justify-center border border-primary/10"
+        className="rounded-2xl overflow-hidden"
       >
-        <Text className="text-primary font-bold mr-2 text-base">Xem chi tiết</Text>
-        <Ionicons name="chevron-forward" size={18} color="#4F46E5" />
+        <LinearGradient
+          colors={['rgba(79,70,229,0.95)', 'rgba(124,58,237,0.9)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.action}
+        >
+          <Text className="text-white font-bold mr-2 text-base">Xem chi tiết</Text>
+          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.46)',
+    borderColor: 'rgba(255,255,255,0.94)',
+    borderWidth: 1.5,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 0.18,
+    shadowRadius: 42,
+    elevation: 10,
+  },
+  cardSheen: {
+    position: 'absolute',
+    top: -72,
+    left: -46,
+    width: 230,
+    height: 160,
+    backgroundColor: 'rgba(255,255,255,0.68)',
+    transform: [{ rotate: '16deg' }],
+  },
+  action: {
+    minHeight: 52,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.62)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.34,
+    shadowRadius: 30,
+  },
+});

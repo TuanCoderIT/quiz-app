@@ -21,7 +21,6 @@ import {
 } from "../../src/features/quiz/components/QuizResultScreen";
 import { getQuizById, submitQuizResult } from "../../src/features/quiz/api";
 import {
-  QuizAnswerSubmission,
   QuizDetail,
   QuizQuestion,
 } from "../../src/features/quiz/types";
@@ -40,6 +39,16 @@ const formatTimer = (seconds: number) => {
 const getDurationSeconds = (quiz: QuizDetail | null) => {
   const durationMinutes = Number(quiz?.duration || 0);
   return Math.max(1, durationMinutes) * 60;
+};
+
+const formatApiDateTime = (date: Date) => {
+  const pad = (value: number) => value.toString().padStart(2, "0");
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
 
 const getCategoryLabel = (quiz: QuizDetail) => {
@@ -183,17 +192,6 @@ const getQuestionResultStatus = (
     : "incorrect";
 };
 
-const buildAnswerSubmissions = (
-  questions: QuizQuestion[],
-  answers: QuizAnswers
-): QuizAnswerSubmission[] => {
-  return questions.map((question) => ({
-    question_id: question.id,
-    type: getQuestionType(question),
-    answer: String(answers[question.id] ?? "").trim(),
-  }));
-};
-
 const QuizTakingScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -335,8 +333,7 @@ const QuizTakingScreen = () => {
         await submitQuizResult({
           exam_id: quiz.id,
           time_spent: summary.timeSpent,
-          completed_at: new Date().toISOString(),
-          answers: buildAnswerSubmissions(questions, answers),
+          completed_at: formatApiDateTime(new Date()),
           score: summary.score,
           total: summary.total,
           percentage: summary.percentage,
@@ -348,7 +345,7 @@ const QuizTakingScreen = () => {
         setIsSubmitting(false);
       }
     },
-    [answers, calculateResult, questions, quiz, timeLeft]
+    [calculateResult, quiz, timeLeft]
   );
 
   useEffect(() => {

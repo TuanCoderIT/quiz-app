@@ -46,7 +46,6 @@ export interface QuizResultPayload {
   exam_id: number;
   time_spent: number;
   completed_at: string;
-  answers: QuizAnswerSubmission[];
   score?: number;
   total?: number;
   percentage?: number;

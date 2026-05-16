@@ -1,8 +1,8 @@
-import React from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface PracticeQuizCardProps {
   id: string | number;
@@ -21,13 +21,13 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
   difficulty,
   questionCount,
   timeEstimate,
-  onPress
+  onPress,
 }) => {
   const getDifficultyStyles = () => {
     switch (difficulty) {
-      case 'Dễ': return { text: '#10B981', bg: '#10B98115' };
-      case 'Trung bình': return { text: '#F59E0B', bg: '#F59E0B15' };
-      case 'Khó': return { text: '#EF4444', bg: '#EF444415' };
+      case 'Dễ': return { text: '#10B981', bg: '#10B98112' };
+      case 'Trung bình': return { text: '#F59E0B', bg: '#F59E0B12' };
+      case 'Khó': return { text: '#EF4444', bg: '#EF444412' };
       default: return { text: '#64748B', bg: '#F1F5F9' };
     }
   };
@@ -35,51 +35,38 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
   const difficultyStyles = getDifficultyStyles();
 
   return (
-    <View style={styles.card} className="p-5 rounded-3xl border shadow-sm mb-5">
-      <View style={styles.cardSheen} />
-      <View className="flex-row justify-between items-start mb-3">
-        <View className="flex-1 mr-2">
-          <Text className="text-text-primary text-xl font-bold mb-1">
-            {title}
-          </Text>
-          <Text className="text-text-secondary text-sm leading-5" numberOfLines={2}>
-            {description}
-          </Text>
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.description} numberOfLines={2}>{description}</Text>
         </View>
-        <View 
-          className="px-3 py-1.5 rounded-xl"
-          style={{ backgroundColor: difficultyStyles.bg }}
-        >
-          <Text className="font-bold text-xs" style={{ color: difficultyStyles.text }}>
+        <View style={[styles.difficultyPill, { backgroundColor: difficultyStyles.bg }]}>
+          <Text style={[styles.difficultyText, { color: difficultyStyles.text }]}>
             {difficulty}
           </Text>
         </View>
       </View>
 
-      <View className="flex-row items-center mb-6">
-        <View className="flex-row items-center mr-5">
-          <Ionicons name="help-circle-outline" size={16} color="#94A3B8" />
-          <Text className="text-text-secondary text-sm ml-1.5">{questionCount} câu hỏi</Text>
-        </View>
-        <View className="flex-row items-center">
-          <Ionicons name="time-outline" size={16} color="#94A3B8" />
-          <Text className="text-text-secondary text-sm ml-1.5">{timeEstimate}</Text>
-        </View>
+      <View style={styles.metaRow}>
+        <Text style={styles.metaText}>{questionCount} câu hỏi</Text>
+        <View style={styles.metaDot} />
+        <Text style={styles.metaText}>{timeEstimate}</Text>
       </View>
 
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={onPress || (() => router.push(`/quiz/${id}`))}
         activeOpacity={0.8}
-        className="rounded-2xl overflow-hidden"
+        style={styles.actionWrapper}
       >
         <LinearGradient
-          colors={['rgba(79,70,229,0.95)', 'rgba(124,58,237,0.9)']}
+          colors={['#4F46E5', '#7C3AED']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.action}
         >
-          <Text className="text-white font-bold mr-2 text-base">Xem chi tiết</Text>
-          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+          <Text style={styles.actionText}>Xem chi tiết</Text>
+          <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -88,37 +75,79 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    position: 'relative',
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.46)',
-    borderColor: 'rgba(255,255,255,0.94)',
-    borderWidth: 1.5,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 24 },
-    shadowOpacity: 0.18,
-    shadowRadius: 42,
-    elevation: 10,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(226,232,240,0.68)',
+    padding: 20,
+    marginBottom: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 22,
+    elevation: 2,
   },
-  cardSheen: {
-    position: 'absolute',
-    top: -72,
-    left: -46,
-    width: 230,
-    height: 160,
-    backgroundColor: 'rgba(255,255,255,0.68)',
-    transform: [{ rotate: '16deg' }],
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  headerText: {
+    flex: 1,
+    marginRight: 10,
+  },
+  title: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  description: {
+    color: '#64748B',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  difficultyPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  difficultyText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  metaText: {
+    color: '#94A3B8',
+    fontSize: 13,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    marginHorizontal: 8,
+  },
+  actionWrapper: {
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   action: {
-    minHeight: 52,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.62)',
+    height: 48,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.34,
-    shadowRadius: 30,
+  },
+  actionText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    marginRight: 6,
   },
 });

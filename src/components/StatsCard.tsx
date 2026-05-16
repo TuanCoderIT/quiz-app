@@ -1,32 +1,41 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Text, View } from 'react-native';
 
 interface StatsCardProps {
   label: string;
   value: string | number;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: string;
   color: string;
   className?: string;
 }
 
-export const StatsCard: React.FC<StatsCardProps> = ({ label, value, icon, color, className = '' }) => {
+export const StatsCard: React.FC<StatsCardProps> = ({ label, value, color }) => {
   return (
-    <View 
-      className={`bg-white p-4 rounded-xl shadow-sm border border-gray-50 mr-3 w-32 ${className}`}
-    >
-      <View 
-        className="w-10 h-10 rounded-full items-center justify-center mb-3"
-        style={{ backgroundColor: `${color}15` }}
-      >
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text className="text-text-primary text-xl font-bold mb-1">
-        {value}
-      </Text>
-      <Text className="text-text-secondary text-xs font-medium">
-        {label}
-      </Text>
+    <View style={styles.card}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.value, { color }]}>{value}</Text>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    width: 110,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(226,232,240,0.65)',
+    padding: 14,
+    marginRight: 10,
+  },
+  label: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  value: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+});

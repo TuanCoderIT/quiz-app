@@ -22,8 +22,16 @@ module.exports = {
           900: '#0F0E2A',
         },
         secondary: {
+          DEFAULT: '#06B6D4',
+          50:  '#ECFEFF',
+          100: '#CFFAFE',
+          500: '#06B6D4',
+          600: '#0891B2',
+        },
+        premium: {
           DEFAULT: '#7C3AED',
           50:  '#F5F3FF',
+          100: '#EDE9FE',
           500: '#7C3AED',
           600: '#6D28D9',
         },

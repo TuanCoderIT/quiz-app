@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface QuizCardProps {
   title: string;
@@ -10,53 +9,91 @@ interface QuizCardProps {
   onPress?: () => void;
 }
 
-export const QuizCard: React.FC<QuizCardProps> = ({ 
-  title, 
-  category, 
-  difficulty, 
+export const QuizCard: React.FC<QuizCardProps> = ({
+  title,
+  category,
+  difficulty,
   questionCount,
-  onPress 
+  onPress,
 }) => {
   const getDifficultyColor = () => {
     switch (difficulty) {
-      case 'Dễ': return 'text-success bg-success/10';
-      case 'Trung bình': return 'text-warning bg-warning/10';
-      case 'Khó': return 'text-error bg-error/10';
-      default: return 'text-gray-500 bg-gray-100';
+      case 'Dễ': return { text: '#10B981', bg: '#10B98112' };
+      case 'Trung bình': return { text: '#F59E0B', bg: '#F59E0B12' };
+      case 'Khó': return { text: '#EF4444', bg: '#EF444412' };
+      default: return { text: '#64748B', bg: '#F1F5F9' };
     }
   };
 
+  const colors = getDifficultyColor();
+
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4 flex-row items-center"
+      style={styles.card}
     >
-      <View className="w-14 h-14 bg-primary/10 rounded-xl items-center justify-center mr-4">
-        <Ionicons name="document-text-outline" size={28} color="#4F46E5" />
-      </View>
-      
-      <View className="flex-1">
-        <Text className="text-text-primary text-lg font-bold mb-1" numberOfLines={1}>
-          {title}
+      <View style={[styles.accent, { backgroundColor: colors.text }]} />
+
+      <View style={styles.content}>
+        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+        <Text style={styles.meta}>
+          {category} · {questionCount} câu hỏi
         </Text>
-        
-        <View className="flex-row items-center">
-          <Text className="text-text-secondary text-sm mr-3">
-            {category}
-          </Text>
-          <View className="w-1 h-1 bg-gray-300 rounded-full mr-3" />
-          <Text className="text-text-secondary text-sm">
-            {questionCount} câu hỏi
-          </Text>
-        </View>
       </View>
 
-      <View className={`px-2 py-1 rounded-lg ${getDifficultyColor()}`}>
-        <Text className="text-xs font-bold">
+      <View style={[styles.difficultyPill, { backgroundColor: colors.bg }]}>
+        <Text style={[styles.difficultyText, { color: colors.text }]}>
           {difficulty}
         </Text>
       </View>
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(226,232,240,0.65)',
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    elevation: 1,
+  },
+  accent: {
+    width: 4,
+    height: 36,
+    borderRadius: 2,
+    marginRight: 14,
+  },
+  content: {
+    flex: 1,
+  },
+  title: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  meta: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  difficultyPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    marginLeft: 10,
+  },
+  difficultyText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+});

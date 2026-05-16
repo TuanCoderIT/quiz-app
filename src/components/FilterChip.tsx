@@ -14,17 +14,8 @@ export const FilterChip: React.FC<FilterChipProps> = ({ label, active, onPress }
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       style={[styles.chip, active && styles.activeChip]}
-      className={`min-h-10 px-6 py-2.5 rounded-full mr-2.5 mb-2.5 border items-center justify-center ${
-        active
-          ? 'bg-primary border-primary shadow-sm shadow-primary/20'
-          : 'bg-white border-gray-100'
-      }`}
     >
-      <Text
-        className={`text-sm font-bold ${
-          active ? 'text-white' : 'text-text-secondary'
-        }`}
-      >
+      <Text style={[styles.text, active && styles.activeText]}>
         {label}
       </Text>
     </Pressable>
@@ -33,17 +24,26 @@ export const FilterChip: React.FC<FilterChipProps> = ({ label, active, onPress }
 
 const styles = StyleSheet.create({
   chip: {
-    backgroundColor: 'rgba(255,255,255,0.36)',
-    borderColor: 'rgba(255,255,255,0.94)',
-    borderWidth: 1.5,
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(226,232,240,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
   },
   activeChip: {
-    backgroundColor: 'rgba(79,70,229,0.92)',
-    borderColor: 'rgba(255,255,255,0.68)',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.34,
-    shadowRadius: 28,
-    elevation: 7,
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
+  },
+  text: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  activeText: {
+    color: '#FFFFFF',
   },
 });

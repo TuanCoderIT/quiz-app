@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AppBackground } from "../../src/components/AppBackground";
 import { QuizCard } from "../../src/components/QuizCard";
 import { StatsCard } from "../../src/components/StatsCard";
 import { useAuthStore } from "../../src/stores/auth.store";
@@ -16,184 +16,246 @@ const HomeScreen = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Chào buổi sáng,";
     if (hour < 18) return "Chào buổi chiều,";
-    return "Chào buổi tối, bạn yêu";
+    return "Chào buổi tối,";
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
-      >
-        {/* Header Greeting */}
-        <View className="flex-row items-center justify-between mt-6 mb-8">
-          <View>
-            <Text className="text-text-secondary text-lg font-medium">
-              {getGreeting()}
-            </Text>
-            <Text className="text-text-primary text-3xl font-bold">
-              {user?.name || "Bạn"} 👋
-            </Text>
-            <Text className="text-text-secondary mt-1">
-              Sẵn sàng để tiếp tục học chưa?
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => router.push("/(tabs)/profile")}
-            className="w-14 h-14 rounded-full border-2 border-primary/20 overflow-hidden"
-          >
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} className="w-full h-full" />
-            ) : (
-              <View className="w-full h-full bg-primary/10 items-center justify-center">
-                <Ionicons name="person" size={28} color="#4F46E5" />
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Continue Learning Card */}
-        <LinearGradient
-          colors={["#4F46E5", "#7C3AED"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 20,
-            marginBottom: 32,
-            overflow: "hidden",
-            padding: 24,
-          }}
+    <AppBackground>
+      <SafeAreaView style={styles.safe} edges={["top"]}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
-          <View className="flex-row justify-between items-start mb-4">
-            <View className="flex-1 mr-4">
-              <Text className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">
-                TIẾP TỤC HỌC
-              </Text>
-              <Text className="text-white text-xl font-bold mb-2">
-                Kiến thức cơ bản về AI
-              </Text>
-              <Text className="text-white/90 text-sm">
-                Đã hoàn thành 12/20 câu hỏi
-              </Text>
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greeting}>{getGreeting()}</Text>
+              <Text style={styles.userName}>{user?.name || "Bạn"}</Text>
+              <Text style={styles.headerSub}>Sẵn sàng để tiếp tục học chưa?</Text>
             </View>
-            <View className="bg-white/20 p-2 rounded-xl">
-              <Ionicons name="play" size={24} color="white" />
-            </View>
-          </View>
-
-          <View className="h-2 bg-white/20 rounded-full overflow-hidden mb-6">
-            <View className="h-full bg-white w-[60%]" />
-          </View>
-
-          <TouchableOpacity
-            className="bg-white py-3 rounded-xl items-center"
-            activeOpacity={0.8}
-          >
-            <Text className="text-primary font-bold">Tiếp tục ngay</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-
-        {/* AI Quiz Generator Card */}
-        <TouchableOpacity
-          className="bg-accent/10 border border-accent/20 rounded-3xl p-6 mb-8 flex-row items-center"
-          activeOpacity={0.8}
-        >
-          <View className="flex-1">
-            <View className="flex-row items-center mb-2">
-              <Ionicons
-                name="sparkles"
-                size={20}
-                color="#06B6D4"
-                className="mr-2"
-              />
-              <Text className="text-accent text-lg font-bold">
-                Tạo Quiz với AI
-              </Text>
-            </View>
-            <Text className="text-text-secondary text-sm">
-              Tạo bộ câu hỏi thông minh chỉ trong vài giây.
-            </Text>
-            <TouchableOpacity className="mt-4 bg-accent px-4 py-2 rounded-lg self-start">
-              <Text className="text-white font-bold text-xs uppercase">
-                Tạo ngay
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center shadow-sm">
-            <Text className="text-4xl">🤖</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Quick Stats */}
-        <View className="mb-8">
-          <Text className="text-text-primary text-xl font-bold mb-4">
-            Thống kê nhanh
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="-mx-5 px-5"
-          >
-            <StatsCard
-              label="Đã hoàn thành"
-              value="24"
-              icon="checkmark-circle"
-              color="#10B981"
-            />
-            <StatsCard
-              label="Tỉ lệ chính xác"
-              value="85%"
-              icon="trending-up"
-              color="#4F46E5"
-            />
-            <StatsCard
-              label="Chuỗi ngày"
-              value="7"
-              icon="flame"
-              color="#F59E0B"
-            />
-            <StatsCard
-              label="Điểm XP"
-              value="1.2k"
-              icon="star"
-              color="#7C3AED"
-            />
-          </ScrollView>
-        </View>
-
-        {/* Featured Quizzes */}
-        <View>
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-text-primary text-xl font-bold">
-              Quiz nổi bật
-            </Text>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/practice")}>
-              <Text className="text-primary font-bold">Xem tất cả</Text>
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/profile")}
+              style={styles.avatar}
+            >
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={22} color="#4F46E5" />
+              )}
             </TouchableOpacity>
           </View>
 
-          <QuizCard
-            title="Lập trình React Native"
-            category="Mobile App"
-            difficulty="Trung bình"
-            questionCount={15}
-          />
-          <QuizCard
-            title="Machine Learning 101"
-            category="AI & Data"
-            difficulty="Khó"
-            questionCount={20}
-          />
-          <QuizCard
-            title="Lịch sử thế giới"
-            category="Xã hội"
-            difficulty="Dễ"
-            questionCount={10}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          {/* Continue Learning - Glass Card */}
+          <View style={styles.heroCard}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>TIẾP TỤC HỌC</Text>
+            </View>
+            <Text style={styles.heroTitle}>Kiến thức cơ bản về AI</Text>
+            <Text style={styles.heroMeta}>Đã hoàn thành 12/20 câu hỏi</Text>
+
+            <View style={styles.progressTrack}>
+              <View style={styles.progressFill} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.heroButton}
+              activeOpacity={0.8}
+              onPress={() => router.push("/(tabs)/practice")}
+            >
+              <Text style={styles.heroButtonText}>Tiếp tục ngay</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick Stats */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Thống kê nhanh</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20 }}
+            >
+              <StatsCard label="Đã hoàn thành" value="24" color="#10B981" />
+              <StatsCard label="Chính xác" value="85%" color="#4F46E5" />
+              <StatsCard label="Chuỗi ngày" value="7" color="#F59E0B" />
+              <StatsCard label="Điểm XP" value="1.2k" color="#7C3AED" />
+            </ScrollView>
+          </View>
+
+          {/* Featured Quizzes */}
+          <View style={styles.quizSection}>
+            <View style={styles.quizHeader}>
+              <Text style={styles.sectionTitle}>Quiz nổi bật</Text>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/practice")}>
+                <Text style={styles.seeAll}>Xem tất cả</Text>
+              </TouchableOpacity>
+            </View>
+
+            <QuizCard
+              title="Lập trình React Native"
+              category="Mobile App"
+              difficulty="Trung bình"
+              questionCount={15}
+            />
+            <QuizCard
+              title="Machine Learning 101"
+              category="AI & Data"
+              difficulty="Khó"
+              questionCount={20}
+            />
+            <QuizCard
+              title="Lịch sử thế giới"
+              category="Xã hội"
+              difficulty="Dễ"
+              questionCount={10}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </AppBackground>
   );
 };
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 24,
+  },
+  greeting: {
+    color: "#64748B",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  userName: {
+    color: "#0F172A",
+    fontSize: 26,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  headerSub: {
+    color: "#64748B",
+    fontSize: 13,
+    marginTop: 4,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(226,232,240,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+
+  // Hero
+  heroCard: {
+    marginHorizontal: 20,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(226,232,240,0.7)",
+    padding: 22,
+    marginBottom: 24,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 2,
+  },
+  heroBadge: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    backgroundColor: "#EEF2FF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  heroBadgeText: {
+    color: "#4F46E5",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  heroTitle: {
+    color: "#0F172A",
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  heroMeta: {
+    color: "#64748B",
+    fontSize: 13,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#E2E8F0",
+    marginTop: 16,
+    marginBottom: 18,
+    overflow: "hidden",
+  },
+  progressFill: {
+    width: "60%",
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: "#4F46E5",
+  },
+  heroButton: {
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#4F46E5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  // Sections
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    color: "#0F172A",
+    fontSize: 18,
+    fontWeight: "800",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  quizSection: {
+    paddingHorizontal: 20,
+  },
+  quizHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  seeAll: {
+    color: "#4F46E5",
+    fontSize: 14,
+    fontWeight: "700",
+    paddingHorizontal: 20,
+  },
+});
 
 export default HomeScreen;

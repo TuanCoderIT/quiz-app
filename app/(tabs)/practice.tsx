@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppBackground } from '../../src/components/AppBackground';
 import { CategoryCard } from '../../src/components/CategoryCard';
 import { FilterChip } from '../../src/components/FilterChip';
 import { PracticeQuizCard } from '../../src/components/PracticeQuizCard';
@@ -13,15 +13,6 @@ const difficultyMap: Record<string, 'Dễ' | 'Trung bình' | 'Khó'> = {
   Beginner: 'Dễ',
   Intermediate: 'Trung bình',
   Advanced: 'Khó',
-};
-
-const categoryIconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'Toán học': 'calculator-outline',
-  'Tiếng Anh': 'language-outline',
-  'Lập trình': 'code-slash-outline',
-  'Lịch sử': 'time-outline',
-  'Khoa học': 'flask-outline',
-  'Tất cả': 'apps-outline',
 };
 
 const difficultyFilters = ['Tất cả', 'Dễ', 'Trung bình', 'Khó'];
@@ -52,127 +43,102 @@ const PracticeScreen = () => {
   }, [activeDifficulty, exams, searchQuery, selectedCategoryId]);
 
   return (
-    <LinearGradient
-      colors={['#F7F8FF', '#F0FBFF', '#F8FAFC']}
-      locations={[0, 0.48, 1]}
-      style={styles.screen}
-    >
-      <SafeAreaView className="flex-1" edges={['top']}>
+    <AppBackground>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 112 }}
+          contentContainerStyle={styles.scrollContent}
         >
-          <View className="px-5 mt-5">
-            <LinearGradient
-              colors={['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.62)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroShell}
-            >
-              <View style={styles.heroGlow} />
-              <View className="flex-row items-start justify-between">
-                <View className="flex-1 pr-5">
-                  <Text className="text-slate-400 text-xs font-extrabold mb-2">QUIZ AI</Text>
-                  <Text className="text-slate-900 text-3xl font-extrabold leading-9">
-                    Luyện tập thông minh
-                  </Text>
-                  <Text className="text-slate-500 text-base leading-6 mt-3">
-                    Chọn chủ đề, lọc độ khó và bắt đầu bài quiz phù hợp với nhịp học hôm nay.
-                  </Text>
+          {/* Hero Card */}
+          <View style={styles.heroCard}>
+            <View style={styles.heroHeader}>
+              <View style={styles.heroTextBlock}>
+                <View style={styles.aiBadge}>
+                  <Text style={styles.aiBadgeText}>QUIZ AI</Text>
                 </View>
-
-                <View style={styles.aiChip}>
-                  <Ionicons name="sparkles" size={14} color="#0891B2" />
-                  <Text className="text-cyan-700 text-xs font-extrabold ml-1">AI</Text>
-                </View>
+                <Text style={styles.heroTitle}>Luyện tập thông minh</Text>
+                <Text style={styles.heroSubtitle}>
+                  Chọn chủ đề, lọc độ khó và bắt đầu bài quiz phù hợp.
+                </Text>
               </View>
+            </View>
 
-              <View className="flex-row gap-3 mt-6">
-                <View style={styles.statCard} className="flex-1">
-                  <Text className="text-slate-500 text-xs font-bold mb-1">Bài quiz</Text>
-                  <Text className="text-emerald-500 text-2xl font-extrabold">{exams.length}</Text>
-                </View>
-                <View style={styles.statCard} className="flex-1">
-                  <Text className="text-slate-500 text-xs font-bold mb-1">Chủ đề</Text>
-                  <Text className="text-violet-600 text-2xl font-extrabold">
-                    {categories.length}
-                  </Text>
-                </View>
-                <View style={styles.statCard} className="flex-1">
-                  <Text className="text-slate-500 text-xs font-bold mb-1">Đang lọc</Text>
-                  <Text className="text-amber-500 text-2xl font-extrabold">
-                    {filteredExams.length}
-                  </Text>
-                </View>
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Bài quiz</Text>
+                <Text style={[styles.statValue, { color: '#10B981' }]}>{exams.length}</Text>
               </View>
-            </LinearGradient>
-          </View>
-
-          <View className="px-5 mt-5">
-            <View style={styles.controlPanel}>
-              <View style={styles.searchBar}>
-                <Ionicons name="search-outline" size={22} color="#94A3B8" />
-                <TextInput
-                  placeholder="Tìm kiếm bài quiz..."
-                  placeholderTextColor="#94A3B8"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  className="flex-1 ml-3 text-text-primary text-base"
-                />
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Chủ đề</Text>
+                <Text style={[styles.statValue, { color: '#7C3AED' }]}>{categories.length}</Text>
               </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
-              >
-                {difficultyFilters.map((filter) => (
-                  <FilterChip
-                    key={filter}
-                    label={filter}
-                    active={activeDifficulty === filter}
-                    onPress={() => setActiveDifficulty(filter)}
-                  />
-                ))}
-              </ScrollView>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Đang lọc</Text>
+                <Text style={[styles.statValue, { color: '#F59E0B' }]}>{filteredExams.length}</Text>
+              </View>
             </View>
           </View>
 
-          <View className="mt-8">
-            <Text className="px-5 text-text-primary text-xl font-bold mb-4">
-              Chủ đề phổ biến
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5">
-              {categories.map((category) => (
-                <CategoryCard
-                  key={category.id}
-                  label={category.name}
-                  icon={categoryIconMap[category.name] || 'book-outline'}
-                  onPress={() => setSelectedCategoryId(category.id)}
-                  active={selectedCategoryId === category.id}
-                  style={{ marginTop: 12,marginBottom: 12
+          {/* Search & Filter */}
+          <View style={styles.searchPanel}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search-outline" size={20} color="#94A3B8" />
+              <TextInput
+                placeholder="Tìm kiếm bài quiz..."
+                placeholderTextColor="#94A3B8"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={styles.searchInput}
+              />
+            </View>
 
-                   }}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingTop: 14 }}
+            >
+              {difficultyFilters.map((filter) => (
+                <FilterChip
+                  key={filter}
+                  label={filter}
+                  active={activeDifficulty === filter}
+                  onPress={() => setActiveDifficulty(filter)}
                 />
               ))}
             </ScrollView>
           </View>
 
-          <View className="px-5 mt-9">
-            <View className="flex-row items-center justify-between mb-5">
+          {/* Categories */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Chủ đề phổ biến</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20 }}
+            >
+              {categories.map((category) => (
+                <CategoryCard
+                  key={category.id}
+                  label={category.name}
+                  onPress={() => setSelectedCategoryId(category.id)}
+                  active={selectedCategoryId === category.id}
+                />
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Quiz List */}
+          <View style={styles.listSection}>
+            <View style={styles.listHeader}>
               <View>
-                <Text className="text-text-primary text-xl font-bold">
-                  Danh sách bài kiểm tra
-                </Text>
-                <Text className="text-text-secondary text-sm mt-1">
+                <Text style={styles.listTitle}>Danh sách bài kiểm tra</Text>
+                <Text style={styles.listSubtitle}>
                   {activeDifficulty} · {selectedCategoryId === 'all' ? 'Mọi chủ đề' : 'Đã chọn chủ đề'}
                 </Text>
               </View>
               {!isLoading && (
                 <View style={styles.countPill}>
-                  <Text className="text-primary text-sm font-extrabold">
-                    {filteredExams.length} bài
-                  </Text>
+                  <Text style={styles.countText}>{filteredExams.length} bài</Text>
                 </View>
               )}
             </View>
@@ -180,9 +146,7 @@ const PracticeScreen = () => {
             {isLoading ? (
               <View style={styles.loadingCard}>
                 <ActivityIndicator size="large" color="#4F46E5" />
-                <Text className="text-text-secondary mt-4 text-base font-medium">
-                  Đang tải dữ liệu...
-                </Text>
+                <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
               </View>
             ) : filteredExams.length > 0 ? (
               filteredExams.map((quiz) => (
@@ -204,8 +168,8 @@ const PracticeScreen = () => {
               ))
             ) : (
               <View style={styles.emptyCard}>
-                <Ionicons name="search-outline" size={48} color="#94A3B8" />
-                <Text className="text-text-secondary mt-4 text-base text-center">
+                <Ionicons name="search-outline" size={40} color="#94A3B8" />
+                <Text style={styles.emptyText}>
                   Không tìm thấy bài kiểm tra nào phù hợp.
                 </Text>
               </View>
@@ -213,107 +177,200 @@ const PracticeScreen = () => {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
+    </AppBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: {
+  safe: {
     flex: 1,
   },
-  heroShell: {
+  scrollContent: {
+    paddingBottom: 112,
+  },
+
+  // Hero
+  heroCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
     borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.78)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.82)',
+    borderColor: 'rgba(226,232,240,0.7)',
     padding: 22,
-    overflow: 'hidden',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 22 },
-    shadowOpacity: 0.14,
-    shadowRadius: 42,
-    elevation: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.06,
+    shadowRadius: 28,
+    elevation: 2,
   },
-  heroGlow: {
-    position: 'absolute',
-    top: -48,
-    right: -40,
-    width: '78%',
-    height: 170,
-    backgroundColor: 'rgba(6,182,212,0.14)',
-    transform: [{ rotate: '-10deg' }],
-  },
-  aiChip: {
-    minWidth: 48,
-    height: 34,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(6,182,212,0.32)',
-    backgroundColor: 'rgba(6,182,212,0.14)',
+  heroHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  heroTextBlock: {
+    flex: 1,
+  },
+  aiBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: 'rgba(6,182,212,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(6,182,212,0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  aiBadgeText: {
+    color: '#0891B2',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  heroTitle: {
+    color: '#0F172A',
+    fontSize: 26,
+    fontWeight: '800',
+    lineHeight: 32,
+  },
+  heroSubtitle: {
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 8,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
   },
   statCard: {
-    minHeight: 76,
-    borderRadius: 18,
+    flex: 1,
+    minHeight: 68,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.72)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.78)',
-    backgroundColor: 'rgba(255,255,255,0.56)',
+    borderColor: 'rgba(226,232,240,0.6)',
     padding: 12,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
   },
-  controlPanel: {
+  statLabel: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+
+  // Search
+  searchPanel: {
+    marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.76)',
-    backgroundColor: 'rgba(255,255,255,0.58)',
-    padding: 14,
+    borderColor: 'rgba(226,232,240,0.7)',
+    padding: 18,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.08,
-    shadowRadius: 34,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 22,
+    elevation: 2,
   },
   searchBar: {
-    minHeight: 54,
-    borderRadius: 22,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.86)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)',
-    backgroundColor: 'rgba(255,255,255,0.64)',
-    paddingHorizontal: 16,
+    borderColor: 'rgba(203,213,225,0.5)',
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    color: '#0F172A',
+    fontSize: 15,
+  },
+
+  // Sections
+  section: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  listSection: {
+    paddingHorizontal: 20,
+    marginTop: 28,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  listTitle: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  listSubtitle: {
+    color: '#64748B',
+    fontSize: 13,
+    marginTop: 2,
   },
   countPill: {
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(79,70,229,0.14)',
-    backgroundColor: 'rgba(255,255,255,0.66)',
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
+  countText: {
+    color: '#4F46E5',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // States
   loadingCard: {
-    minHeight: 180,
-    borderRadius: 28,
+    minHeight: 160,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.78)',
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderColor: 'rgba(226,232,240,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  loadingText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 14,
+  },
   emptyCard: {
-    minHeight: 170,
-    borderRadius: 28,
+    minHeight: 150,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.78)',
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderColor: 'rgba(226,232,240,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+  },
+  emptyText: {
+    color: '#64748B',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 12,
   },
 });
 

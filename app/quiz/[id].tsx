@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   LayoutChangeEvent,
@@ -38,13 +38,11 @@ export default function QuizDetailScreen() {
 
   const scrollY = useSharedValue(0);
 
-  useEffect(() => {
-    if (id) {
-      fetchQuizDetail();
+  const fetchQuizDetail = useCallback(async () => {
+    if (!id) {
+      return;
     }
-  }, [id]);
 
-  const fetchQuizDetail = async () => {
     try {
       setLoading(true);
       const data = await getQuizById(Number(id));
@@ -54,7 +52,11 @@ export default function QuizDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchQuizDetail();
+  }, [fetchQuizDetail]);
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offset = event.nativeEvent.contentOffset.y;

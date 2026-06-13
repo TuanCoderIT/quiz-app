@@ -1,7 +1,8 @@
 import { axiosAPI } from "../../services/api/client";
 import { Category } from "../../types/category";
-import { Quiz } from "../../types/quiz";
+import { WithUnlockedAchievements } from "../gamification/types";
 import { QuizDetail, QuizResultPayload } from "./types";
+import { Quiz } from "./types/quiz.types";
 
 const categoryNameBySlug: Record<string, string> = {
   programming: "Lập trình",
@@ -12,12 +13,16 @@ const categoryNameBySlug: Record<string, string> = {
   history: "Lịch sử",
 };
 
-const normalizeCategory = (category?: Category | null): Category | undefined => {
+const normalizeCategory = (
+  category?: Category | null,
+): Category | undefined => {
   if (!category) {
     return undefined;
   }
 
-  const normalizedName = category.slug ? categoryNameBySlug[category.slug] : undefined;
+  const normalizedName = category.slug
+    ? categoryNameBySlug[category.slug]
+    : undefined;
 
   return {
     ...category,
@@ -39,7 +44,9 @@ const unwrapData = <T>(data: T | { data?: T } | { exam?: T }): T => {
   return data as T;
 };
 
-export const getQuizzes = async (categoryId?: number | string): Promise<Quiz[]> => {
+export const getQuizzes = async (
+  categoryId?: number | string,
+): Promise<Quiz[]> => {
   let url = "/exams";
   if (categoryId && categoryId !== "All") {
     url += `?category_id=${categoryId}`;
@@ -55,7 +62,7 @@ export const getQuizzes = async (categoryId?: number | string): Promise<Quiz[]> 
 };
 
 export const getCategories = async (): Promise<Category[]> => {
-  const response = await axiosAPI.get('/categories');
+  const response = await axiosAPI.get("/categories");
   const categories = unwrapData<Category[]>(response.data);
   return categories.map((category) => normalizeCategory(category) || category);
 };
@@ -73,7 +80,9 @@ export const getQuizById = async (id: number): Promise<QuizDetail> => {
   };
 };
 
-export const submitQuizResult = async (payload: QuizResultPayload) => {
+export const submitQuizResult = async (
+  payload: QuizResultPayload,
+): Promise<Record<string, unknown> & WithUnlockedAchievements> => {
   const res = await axiosAPI.post("/results", payload);
   return res.data?.data || res.data;
 };

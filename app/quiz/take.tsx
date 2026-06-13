@@ -1,7 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
+import { isAxiosError } from "axios";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,17 +20,17 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthStore } from "../../src/features/auth/store";
+import { generateWrongAnswerFlashcards } from "../../src/features/flashcard/api";
+import { XpToast } from "../../src/features/gamification/components/XpToast";
+import { getQuizById, submitQuizResult } from "../../src/features/quiz/api";
 import { QuestionItem } from "../../src/features/quiz/components/QuestionItem";
 import {
   QuizResultQuestionStatus,
   QuizResultScreen,
   QuizResultSummary,
 } from "../../src/features/quiz/components/QuizResultScreen";
-import { getQuizById, submitQuizResult } from "../../src/features/quiz/api";
-import {
-  QuizDetail,
-  QuizQuestion,
-} from "../../src/features/quiz/types";
+import { QuizDetail, QuizQuestion } from "../../src/features/quiz/types";
 
 type QuizAnswers = Record<number, string>;
 
@@ -39,16 +46,6 @@ const formatTimer = (seconds: number) => {
 const getDurationSeconds = (quiz: QuizDetail | null) => {
   const durationMinutes = Number(quiz?.duration || 0);
   return Math.max(1, durationMinutes) * 60;
-};
-
-const formatApiDateTime = (date: Date) => {
-  const pad = (value: number) => value.toString().padStart(2, "0");
-
-  return [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
 
 const getCategoryLabel = (quiz: QuizDetail) => {
@@ -67,58 +64,38 @@ const sortQuestions = (questions: QuizQuestion[]) => {
   });
 };
 
-const isAnswerFilled = (answer?: string) => String(answer ?? "").trim().length > 0;
+const isAnswerFilled = (answer?: string) =>
+  String(answer ?? "").trim().length > 0;
+
+const extractResultId = (payload: unknown): number | string | undefined => {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+
+  if ("id" in payload) {
+    const id = payload.id;
+    return typeof id === "number" || typeof id === "string" ? id : undefined;
+  }
+
+  if ("result" in payload) {
+    return extractResultId(payload.result);
+  }
+
+  if ("data" in payload) {
+    return extractResultId(payload.data);
+  }
+
+  return undefined;
+};
 
 const normalizeTextAnswer = (value: QuizQuestion["answer"] | string) =>
-  String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+  String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 
-const isShortAnswerCorrect = (userAnswer: string, correctAnswer: QuizQuestion["answer"]) => {
-  const normalizedUserAnswer = normalizeTextAnswer(userAnswer);
-  const normalizedCorrectAnswer = normalizeTextAnswer(correctAnswer);
-
-  if (!normalizedUserAnswer || !normalizedCorrectAnswer) {
-    return false;
-  }
-
-  if (normalizedUserAnswer === normalizedCorrectAnswer) {
-    return true;
-  }
-
-  const maxLength = Math.max(normalizedUserAnswer.length, normalizedCorrectAnswer.length);
-  const allowedDifference = Math.max(1, Math.floor(maxLength * 0.1));
-
-  return getEditDistance(normalizedUserAnswer, normalizedCorrectAnswer) <= allowedDifference;
-};
-
-const getEditDistance = (a: string, b: string) => {
-  const matrix = Array.from({ length: a.length + 1 }, () =>
-    new Array<number>(b.length + 1).fill(0)
-  );
-
-  for (let i = 0; i <= a.length; i += 1) {
-    matrix[i][0] = i;
-  }
-
-  for (let j = 0; j <= b.length; j += 1) {
-    matrix[0][j] = j;
-  }
-
-  for (let i = 1; i <= a.length; i += 1) {
-    for (let j = 1; j <= b.length; j += 1) {
-      const substitutionCost = a[i - 1] === b[j - 1] ? 0 : 1;
-
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + substitutionCost
-      );
-    }
-  }
-
-  return matrix[a.length][b.length];
-};
-
-const getQuestionType = (question: QuizQuestion) => question.type || "multiple_choice";
+const getQuestionType = (question: QuizQuestion) =>
+  question.type || "multiple_choice";
 
 const OPTION_KEYS = ["A", "B", "C", "D", "E", "F"];
 
@@ -142,10 +119,68 @@ const getQuestionOptions = (question: QuizQuestion) => {
   return [];
 };
 
+const getQuestionSubmissionOptions = (question: QuizQuestion) => {
+  const options = getQuestionOptions(question);
+
+  if (options.length > 0) {
+    return options;
+  }
+
+  if (getQuestionType(question) === "true_false") {
+    return [
+      ["A", "True"],
+      ["B", "False"],
+    ];
+  }
+
+  return [];
+};
+
+const getSubmissionAnswer = (
+  question: QuizQuestion,
+  selectedAnswer?: string,
+): string | null => {
+  if (!isAnswerFilled(selectedAnswer)) {
+    return null;
+  }
+
+  const rawAnswer = String(selectedAnswer);
+  const options = getQuestionSubmissionOptions(question);
+
+  if (options.length === 0) {
+    return rawAnswer;
+  }
+
+  const selectedOption = options.find(
+    ([key, value]) => key === rawAnswer || value === rawAnswer,
+  );
+
+  if (!selectedOption) {
+    return rawAnswer;
+  }
+
+  const expectedAnswer = String(question.answer ?? "");
+  const answerUsesOptionValue = options.some(
+    ([, value]) => value === expectedAnswer,
+  );
+  const answerUsesOptionKey = options.some(([key]) => key === expectedAnswer);
+  const [selectedKey, selectedValue] = selectedOption;
+
+  if (answerUsesOptionValue) {
+    return selectedValue;
+  }
+
+  if (answerUsesOptionKey) {
+    return selectedKey;
+  }
+
+  return selectedKey;
+};
+
 const formatAnswerDisplay = (
   question: QuizQuestion,
   answer: QuizQuestion["answer"] | string | undefined,
-  fallback = "Chưa trả lời"
+  fallback = "Chưa trả lời",
 ) => {
   const rawAnswer = String(answer ?? "").trim();
 
@@ -156,7 +191,7 @@ const formatAnswerDisplay = (
   const matchedOption = getQuestionOptions(question).find(
     ([key, value]) =>
       normalizeTextAnswer(key) === normalizeTextAnswer(rawAnswer) ||
-      normalizeTextAnswer(value) === normalizeTextAnswer(rawAnswer)
+      normalizeTextAnswer(value) === normalizeTextAnswer(rawAnswer),
   );
 
   if (matchedOption) {
@@ -169,7 +204,7 @@ const formatAnswerDisplay = (
 
 const getQuestionResultStatus = (
   question: QuizQuestion,
-  selectedAnswer?: string
+  selectedAnswer?: string,
 ): QuizResultQuestionStatus => {
   const questionType = getQuestionType(question);
 
@@ -181,13 +216,8 @@ const getQuestionResultStatus = (
     return "incorrect";
   }
 
-  if (questionType === "short_answer") {
-    return isShortAnswerCorrect(String(selectedAnswer), question.answer)
-      ? "correct"
-      : "incorrect";
-  }
-
-  return normalizeTextAnswer(selectedAnswer) === normalizeTextAnswer(question.answer)
+  return getSubmissionAnswer(question, selectedAnswer) ===
+    String(question.answer ?? "")
     ? "correct"
     : "incorrect";
 };
@@ -200,24 +230,35 @@ const QuizTakingScreen = () => {
   const [quiz, setQuiz] = useState<QuizDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [xpToast, setXpToast] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({});
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [resultSummary, setResultSummary] = useState<QuizResultSummary | null>(null);
+  const [resultSummary, setResultSummary] = useState<QuizResultSummary | null>(
+    null,
+  );
   const hasFinishedRef = useRef(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
 
   const questions = useMemo(() => sortQuestions(quiz?.questions || []), [quiz]);
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentIndex];
-  const selectedAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+  const selectedAnswer = currentQuestion
+    ? answers[currentQuestion.id]
+    : undefined;
   const answeredCount = questions.filter((question) =>
-    isAnswerFilled(answers[question.id])
+    isAnswerFilled(answers[question.id]),
   ).length;
-  const progress = totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
-  const hasEssayQuestion = questions.some((question) => getQuestionType(question) === "essay");
+  const progress =
+    totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
+  const hasEssayQuestion = questions.some(
+    (question) => getQuestionType(question) === "essay",
+  );
 
   const loadQuiz = useCallback(async () => {
     if (!Number.isFinite(quizId) || quizId <= 0) {
@@ -256,6 +297,24 @@ const QuizTakingScreen = () => {
     loadQuiz();
   }, [loadQuiz]);
 
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const showXpToast = useCallback((label: string) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setXpToast(label);
+    toastTimerRef.current = setTimeout(() => setXpToast(null), 1800);
+  }, []);
+
   const calculateResult = useCallback(
     (remainingSeconds: number, timedOut: boolean): QuizResultSummary | null => {
       if (!quiz || totalQuestions === 0) {
@@ -270,21 +329,23 @@ const QuizTakingScreen = () => {
           return total;
         }
 
-        if (questionType === "short_answer") {
-          return isShortAnswerCorrect(selected, question.answer) ? total + 1 : total;
-        }
-
-        return normalizeTextAnswer(selected) === normalizeTextAnswer(question.answer)
+        return getSubmissionAnswer(question, selected) ===
+          String(question.answer ?? "")
           ? total + 1
           : total;
       }, 0);
 
       const autoGradableTotal = questions.filter(
-        (question) => getQuestionType(question) !== "essay"
+        (question) => getQuestionType(question) !== "essay",
       ).length;
       const percentage =
-        autoGradableTotal > 0 ? Math.round((score / autoGradableTotal) * 100) : 0;
-      const timeSpent = Math.max(0, getDurationSeconds(quiz) - remainingSeconds);
+        autoGradableTotal > 0
+          ? Math.round((score / autoGradableTotal) * 100)
+          : 0;
+      const timeSpent = Math.max(
+        0,
+        getDurationSeconds(quiz) - remainingSeconds,
+      );
       const resultQuestions = questions.map((question, index) => {
         const selected = answers[question.id];
 
@@ -293,7 +354,11 @@ const QuizTakingScreen = () => {
           order: index + 1,
           content: question.content,
           userAnswer: formatAnswerDisplay(question, selected),
-          correctAnswer: formatAnswerDisplay(question, question.answer, "Chưa có đáp án"),
+          correctAnswer: formatAnswerDisplay(
+            question,
+            question.answer,
+            "Chưa có đáp án",
+          ),
           explanation: question.explanation,
           status: getQuestionResultStatus(question, selected),
         };
@@ -309,7 +374,7 @@ const QuizTakingScreen = () => {
         questions: resultQuestions,
       };
     },
-    [answers, hasEssayQuestion, questions, quiz, totalQuestions]
+    [answers, hasEssayQuestion, questions, quiz, totalQuestions],
   );
 
   const finishQuiz = useCallback(
@@ -330,22 +395,45 @@ const QuizTakingScreen = () => {
       setSubmitError(null);
 
       try {
-        await submitQuizResult({
+        const savedResult = await submitQuizResult({
           exam_id: quiz.id,
           time_spent: summary.timeSpent,
-          completed_at: formatApiDateTime(new Date()),
-          score: summary.score,
-          total: summary.total,
-          percentage: summary.percentage,
+          answers: questions.map((question) => ({
+            question_id: question.id,
+            user_answer: getSubmissionAnswer(question, answers[question.id]),
+          })),
         });
+        console.log("learning action response:", savedResult);
+        const resultId = extractResultId(savedResult);
+
+        if (resultId) {
+          setResultSummary((current) =>
+            current ? { ...current, id: resultId } : current,
+          );
+        }
+
+        await refreshUser().catch((refreshError) => {
+          console.error("Lỗi refresh user sau khi nộp quiz:", refreshError);
+        });
+        showXpToast("+50 XP");
       } catch (saveError) {
         console.error("Lỗi lưu kết quả quiz:", saveError);
-        setSubmitError("Kết quả đã tính xong nhưng chưa lưu được lên hệ thống.");
+        setSubmitError(
+          "Kết quả đã tính xong nhưng chưa lưu được lên hệ thống.",
+        );
       } finally {
         setIsSubmitting(false);
       }
     },
-    [calculateResult, quiz, timeLeft]
+    [
+      answers,
+      calculateResult,
+      questions,
+      quiz,
+      refreshUser,
+      showXpToast,
+      timeLeft,
+    ],
   );
 
   useEffect(() => {
@@ -407,8 +495,12 @@ const QuizTakingScreen = () => {
         `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn vẫn muốn nộp bài?`,
         [
           { text: "Tiếp tục làm", style: "cancel" },
-          { text: "Nộp bài", style: "destructive", onPress: () => finishQuiz(false) },
-        ]
+          {
+            text: "Nộp bài",
+            style: "destructive",
+            onPress: () => finishQuiz(false),
+          },
+        ],
       );
       return;
     }
@@ -437,8 +529,50 @@ const QuizTakingScreen = () => {
     setCurrentIndex(0);
     setAnswerError(null);
     setSubmitError(null);
+    setIsGeneratingFlashcards(false);
     setResultSummary(null);
     setTimeLeft(getDurationSeconds(quiz));
+  };
+
+  const handleGenerateWrongAnswerFlashcards = async () => {
+    if (!resultSummary?.id || isGeneratingFlashcards) {
+      return;
+    }
+
+    setIsGeneratingFlashcards(true);
+
+    try {
+      const generated = await generateWrongAnswerFlashcards(resultSummary.id);
+      await refreshUser().catch((refreshError) => {
+        console.error("Lỗi refresh user sau khi tạo flashcards:", refreshError);
+      });
+      console.log("Kết quả khi tạo thẻ bằng AI", generated);
+      showXpToast("+15 XP");
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      router.push(`/flashcard/${generated.flashcardSet.id}`);
+    } catch (generateError) {
+      if (isAxiosError(generateError)) {
+        const status = generateError.response?.status;
+
+        if (status === 422) {
+          Alert.alert("Thông báo", "Không có câu sai để tạo flashcards.");
+          return;
+        }
+
+        if (status === 403) {
+          Alert.alert(
+            "Không thể tạo flashcards",
+            "Bạn không có quyền truy cập result này.",
+          );
+          return;
+        }
+      }
+
+      console.error("Lỗi tạo flashcards từ câu sai:", generateError);
+      Alert.alert("Không thể tạo flashcards", "Vui lòng thử lại sau.");
+    } finally {
+      setIsGeneratingFlashcards(false);
+    }
   };
 
   if (isLoading) {
@@ -478,15 +612,22 @@ const QuizTakingScreen = () => {
 
   if (resultSummary) {
     return (
-      <QuizResultScreen
-        passingScore={quiz.passing_score || 70}
-        resultSummary={resultSummary}
-        isSubmitting={isSubmitting}
-        submitError={submitError}
-        onBack={() => router.back()}
-        onRestart={handleRestart}
-        onPracticePress={() => router.replace("/(tabs)/practice")}
-      />
+      <View className="flex-1">
+        <QuizResultScreen
+          passingScore={quiz.passing_score || 70}
+          resultSummary={resultSummary}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
+          isGeneratingFlashcards={isGeneratingFlashcards}
+          onBack={() => router.back()}
+          onRestart={handleRestart}
+          onPracticePress={() => router.replace("/(tabs)/practice")}
+          onGenerateWrongAnswerFlashcards={
+            resultSummary.id ? handleGenerateWrongAnswerFlashcards : undefined
+          }
+        />
+        <XpToast label={xpToast} />
+      </View>
     );
   }
 
@@ -497,129 +638,142 @@ const QuizTakingScreen = () => {
         keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
         style={{ flex: 1 }}
       >
-      <View className="flex-1">
-        <View className="px-5 pt-4 pb-3">
-          <View className="flex-row items-center justify-between mb-5">
-            <Pressable
-              onPress={() => router.back()}
-              className="w-11 h-11 rounded-2xl bg-white border border-gray-100 items-center justify-center"
-            >
-              <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            </Pressable>
-
-            <View className="items-center flex-1 px-4">
-              <Text className="text-text-primary text-base font-bold" numberOfLines={1}>
-                {quiz.title}
-              </Text>
-              <Text className="text-text-secondary text-xs mt-1" numberOfLines={1}>
-                {getCategoryLabel(quiz)}
-              </Text>
-            </View>
-
-            <View
-              className={`px-3 h-11 rounded-2xl items-center justify-center ${
-                timeLeft <= 60 ? "bg-error/10" : "bg-primary/10"
-              }`}
-            >
-              <Text
-                className={`font-bold ${
-                  timeLeft <= 60 ? "text-error" : "text-primary"
-                }`}
+        <View className="flex-1">
+          <View className="px-5 pt-4 pb-3">
+            <View className="flex-row items-center justify-between mb-5">
+              <Pressable
+                onPress={() => router.back()}
+                className="w-11 h-11 rounded-2xl bg-white border border-gray-100 items-center justify-center"
               >
-                {formatTimer(timeLeft)}
-              </Text>
-            </View>
-          </View>
+                <Ionicons name="chevron-back" size={22} color="#0F172A" />
+              </Pressable>
 
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-text-secondary text-sm font-semibold">
-              Câu {currentIndex + 1}/{totalQuestions}
-            </Text>
-            <Text className="text-text-secondary text-sm font-semibold">
-              Đã trả lời {answeredCount}/{totalQuestions}
-            </Text>
-          </View>
-          <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <View className="h-full bg-primary" style={{ width: `${progress}%` }} />
-          </View>
-        </View>
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 120 }}
-        >
-          <View className="bg-white/90 border border-white rounded-3xl p-6 shadow-sm mb-6">
-            <Text className="text-text-secondary text-sm font-bold uppercase mb-3">
-              Nội dung câu hỏi
-            </Text>
-            <Text className="text-text-primary text-2xl font-bold leading-8">
-              {currentQuestion?.content}
-            </Text>
-          </View>
-
-          {currentQuestion ? (
-            <QuestionItem
-              question={currentQuestion}
-              userAnswer={selectedAnswer || ""}
-              onAnswerChange={handleSelectAnswer}
-            />
-          ) : null}
-
-          {answerError ? (
-            <View className="bg-error/10 border border-error/20 rounded-2xl px-4 py-3 mt-1">
-              <Text className="text-error text-sm font-semibold">
-                {answerError}
-              </Text>
-            </View>
-          ) : null}
-        </ScrollView>
-
-        <View className="absolute left-0 right-0 bottom-0 px-5 pt-4 pb-5 bg-background/95 border-t border-gray-100">
-          <View className="flex-row gap-3">
-            <Pressable
-              disabled={currentIndex === 0}
-              onPress={() => {
-                setAnswerError(null);
-                setCurrentIndex((value) => Math.max(0, value - 1));
-              }}
-              className={`flex-1 py-4 rounded-2xl items-center ${
-                currentIndex === 0 ? "bg-gray-100" : "bg-primary/10"
-              }`}
-            >
-              <Text
-                className={`font-bold text-base ${
-                  currentIndex === 0 ? "text-text-disabled" : "text-primary"
-                }`}
-              >
-                Previous
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={handleNext}
-              style={{ flex: 1.35 }}
-              className="rounded-2xl overflow-hidden"
-            >
-              <LinearGradient
-                colors={["#4F46E5", "#7C3AED"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  alignItems: "center",
-                  borderRadius: 16,
-                  justifyContent: "center",
-                  paddingVertical: 16,
-                }}
-              >
-                <Text className="text-white font-bold text-base">
-                  {currentIndex === totalQuestions - 1 ? "Nộp bài" : "Next"}
+              <View className="items-center flex-1 px-4">
+                <Text
+                  className="text-text-primary text-base font-bold"
+                  numberOfLines={1}
+                >
+                  {quiz.title}
                 </Text>
-              </LinearGradient>
-            </Pressable>
+                <Text
+                  className="text-text-secondary text-xs mt-1"
+                  numberOfLines={1}
+                >
+                  {getCategoryLabel(quiz)}
+                </Text>
+              </View>
+
+              <View
+                className={`px-3 h-11 rounded-2xl items-center justify-center ${
+                  timeLeft <= 60 ? "bg-error/10" : "bg-primary/10"
+                }`}
+              >
+                <Text
+                  className={`font-bold ${
+                    timeLeft <= 60 ? "text-error" : "text-primary"
+                  }`}
+                >
+                  {formatTimer(timeLeft)}
+                </Text>
+              </View>
+            </View>
+
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-text-secondary text-sm font-semibold">
+                Câu {currentIndex + 1}/{totalQuestions}
+              </Text>
+              <Text className="text-text-secondary text-sm font-semibold">
+                Đã trả lời {answeredCount}/{totalQuestions}
+              </Text>
+            </View>
+            <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <View
+                className="h-full bg-primary"
+                style={{ width: `${progress}%` }}
+              />
+            </View>
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingTop: 12,
+              paddingBottom: 120,
+            }}
+          >
+            <View className="bg-white/90 border border-white rounded-3xl p-6 shadow-sm mb-6">
+              <Text className="text-text-secondary text-sm font-bold uppercase mb-3">
+                Nội dung câu hỏi
+              </Text>
+              <Text className="text-text-primary text-2xl font-bold leading-8">
+                {currentQuestion?.content}
+              </Text>
+            </View>
+
+            {currentQuestion ? (
+              <QuestionItem
+                question={currentQuestion}
+                userAnswer={selectedAnswer || ""}
+                onAnswerChange={handleSelectAnswer}
+              />
+            ) : null}
+
+            {answerError ? (
+              <View className="bg-error/10 border border-error/20 rounded-2xl px-4 py-3 mt-1">
+                <Text className="text-error text-sm font-semibold">
+                  {answerError}
+                </Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <View className="absolute left-0 right-0 bottom-0 px-5 pt-4 pb-5 bg-background/95 border-t border-gray-100">
+            <View className="flex-row gap-3">
+              <Pressable
+                disabled={currentIndex === 0}
+                onPress={() => {
+                  setAnswerError(null);
+                  setCurrentIndex((value) => Math.max(0, value - 1));
+                }}
+                className={`flex-1 py-4 rounded-2xl items-center ${
+                  currentIndex === 0 ? "bg-gray-100" : "bg-primary/10"
+                }`}
+              >
+                <Text
+                  className={`font-bold text-base ${
+                    currentIndex === 0 ? "text-text-disabled" : "text-primary"
+                  }`}
+                >
+                  Previous
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleNext}
+                style={{ flex: 1.35 }}
+                className="rounded-2xl overflow-hidden"
+              >
+                <LinearGradient
+                  colors={["#4F46E5", "#7C3AED"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    alignItems: "center",
+                    borderRadius: 16,
+                    justifyContent: "center",
+                    paddingVertical: 16,
+                  }}
+                >
+                  <Text className="text-white font-bold text-base">
+                    {currentIndex === totalQuestions - 1 ? "Nộp bài" : "Next"}
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

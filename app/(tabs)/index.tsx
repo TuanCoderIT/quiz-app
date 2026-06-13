@@ -1,16 +1,28 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppBackground } from "../../src/components/AppBackground";
-import { QuizCard } from "../../src/components/QuizCard";
-import { StatsCard } from "../../src/components/StatsCard";
-import { useAuthStore } from "../../src/stores/auth.store";
+import { AppBackground } from "../../src/components/common/AppBackground";
+import { StatsCard } from "../../src/components/common/StatsCard";
+import { useAuthStore } from "../../src/features/auth/store";
+import { GamificationSummary } from "../../src/features/gamification/components/GamificationSummary";
+import { QuizCard } from "../../src/features/quiz/components/QuizCard";
 
 const HomeScreen = () => {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const formatNumber = (value?: number) =>
+    new Intl.NumberFormat("vi-VN", { notation: "compact" }).format(
+      Number(value || 0),
+    );
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -31,14 +43,19 @@ const HomeScreen = () => {
             <View>
               <Text style={styles.greeting}>{getGreeting()}</Text>
               <Text style={styles.userName}>{user?.name || "Bạn"}</Text>
-              <Text style={styles.headerSub}>Sẵn sàng để tiếp tục học chưa?</Text>
+              <Text style={styles.headerSub}>
+                Sẵn sàng để tiếp tục học chưa?
+              </Text>
             </View>
             <TouchableOpacity
               onPress={() => router.push("/(tabs)/profile")}
               style={styles.avatar}
             >
               {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.avatarImage}
+                />
               ) : (
                 <Ionicons name="person" size={22} color="#4F46E5" />
               )}
@@ -66,6 +83,10 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
+          <View className="mx-5 mb-6">
+            <GamificationSummary user={user} />
+          </View>
+
           {/* Quick Stats */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Thống kê nhanh</Text>
@@ -76,8 +97,16 @@ const HomeScreen = () => {
             >
               <StatsCard label="Đã hoàn thành" value="24" color="#10B981" />
               <StatsCard label="Chính xác" value="85%" color="#4F46E5" />
-              <StatsCard label="Chuỗi ngày" value="7" color="#F59E0B" />
-              <StatsCard label="Điểm XP" value="1.2k" color="#7C3AED" />
+              <StatsCard
+                label="Chuỗi ngày"
+                value={formatNumber(user?.current_streak)}
+                color="#F59E0B"
+              />
+              <StatsCard
+                label="Điểm XP"
+                value={formatNumber(user?.xp)}
+                color="#7C3AED"
+              />
             </ScrollView>
           </View>
 

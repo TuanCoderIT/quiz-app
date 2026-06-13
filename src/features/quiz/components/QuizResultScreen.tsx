@@ -17,6 +17,7 @@ export type QuizResultQuestion = {
 };
 
 export type QuizResultSummary = {
+  id?: number | string;
   score: number;
   total: number;
   percentage: number;
@@ -31,9 +32,11 @@ type QuizResultScreenProps = {
   resultSummary: QuizResultSummary;
   isSubmitting: boolean;
   submitError?: string | null;
+  isGeneratingFlashcards?: boolean;
   onBack: () => void;
   onRestart: () => void;
   onPracticePress: () => void;
+  onGenerateWrongAnswerFlashcards?: () => void;
 };
 
 const formatTimer = (seconds: number) => {
@@ -75,11 +78,16 @@ export const QuizResultScreen = ({
   resultSummary,
   isSubmitting,
   submitError,
+  isGeneratingFlashcards = false,
   onBack,
   onRestart,
   onPracticePress,
+  onGenerateWrongAnswerFlashcards,
 }: QuizResultScreenProps) => {
   const passed = resultSummary.percentage >= passingScore;
+  const hasWrongAnswers = resultSummary.questions.some(
+    (question) => question.status === "incorrect"
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
@@ -219,6 +227,27 @@ export const QuizResultScreen = ({
           <View className="bg-warning/10 rounded-2xl border border-warning/20 p-4 mb-5">
             <Text className="text-warning font-semibold">{submitError}</Text>
           </View>
+        ) : null}
+
+        {hasWrongAnswers && onGenerateWrongAnswerFlashcards ? (
+          <Pressable
+            disabled={isGeneratingFlashcards}
+            onPress={onGenerateWrongAnswerFlashcards}
+            className={`rounded-2xl py-4 mb-3 flex-row items-center justify-center ${
+              isGeneratingFlashcards ? "bg-primary/70" : "bg-primary"
+            }`}
+          >
+            {isGeneratingFlashcards ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="copy-outline" size={19} color="#FFFFFF" />
+            )}
+            <Text className="text-white text-center text-base font-bold ml-2">
+              {isGeneratingFlashcards
+                ? "Đang tạo flashcards..."
+                : "Tạo flashcards từ câu sai"}
+            </Text>
+          </Pressable>
         ) : null}
 
         <Pressable onPress={onRestart} className="bg-primary rounded-2xl py-4 mb-3">

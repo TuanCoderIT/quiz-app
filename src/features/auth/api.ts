@@ -1,6 +1,6 @@
 import { axiosAPI } from "../../services/api/client"; // Đã hướng về file client mới của Mobile
 // Bạn có thể import type từ src/types/auth.ts mà bạn đã định nghĩa cho Mobile
-import { UpdateProfileData, ChangePasswordData } from "../../types/auth"; 
+import { ChangePasswordData, UpdateProfileData } from "./types";
 
 export const fetchUser = async () => {
   const res = await axiosAPI.get("/user");
@@ -15,7 +15,7 @@ export const loginApi = async (email: string, password: string) => {
 export const registerApi = async (
   name: string,
   email: string,
-  password: string
+  password: string,
 ) => {
   const res = await axiosAPI.post("/register", {
     name,
@@ -35,7 +35,7 @@ export const updateProfileApi = async (formData: UpdateProfileData) => {
 
   Object.entries(formData).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      // KIỂM TRA LƯU Ý TRÊN MOBILE: 
+      // KIỂM TRA LƯU Ý TRÊN MOBILE:
       // Nếu value là một đối tượng chọn ảnh từ thư viện của điện thoại (ví dụ từ expo-image-picker)
       if (key === "avatar" && typeof value === "object" && (value as any).uri) {
         const fileValue = value as any;

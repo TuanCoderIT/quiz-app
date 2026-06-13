@@ -1,186 +1,339 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Alert, 
-  StatusBar,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import Animated, { 
-  FadeIn, 
-  FadeInUp, 
-} from 'react-native-reanimated';
-import { useAuthStore } from '../../src/stores/auth.store';
-import ProfileMenuItem from '../../src/components/profile/ProfileMenuItem';
-import AchievementCard from '../../src/components/profile/AchievementCard';
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { Href, useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthStore } from "../../src/features/auth/store";
+import { getFlashcardSummary } from "../../src/features/flashcard/api";
+import { FlashcardSummary } from "../../src/features/flashcard/types";
+import { useGamificationStore } from "../../src/features/gamification/store";
+import { getProgressResults } from "../../src/features/progress/api";
+import { ProgressResult } from "../../src/features/progress/types";
+import {
+  calculateProgressSummary,
+  formatCompletedDate,
+  sortResultsByDate,
+} from "../../src/features/progress/utils";
 
-export default function ProfileScreen() {
-  const { user, logout } = useAuthStore();
+type IconName = keyof typeof Ionicons.glyphMap;
 
-  const handleLogout = () => {
-    Alert.alert(
-      "Đăng xuất",
-      "Bạn có chắc chắn muốn đăng xuất không?",
-      [
-        { text: "Hủy", style: "cancel" },
-        { 
-          text: "Đăng xuất", 
-          style: "destructive", 
-          onPress: async () => {
-            await logout();
-          } 
-        }
-      ]
-    );
-  };
+const formatNumber = (value?: number) =>
+  new Intl.NumberFormat("vi-VN").format(Number(value || 0));
 
-  const handleEditProfile = () => {
-    Alert.alert("Thông báo", "Tính năng Chỉnh sửa hồ sơ đang được phát triển.");
-  };
+const formatStudyTime = (seconds: number) => {
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} phút`;
 
-  // Mock stats
-  const achievements = [
-    { label: "Quizzes", value: "24", icon: "checkmark-circle", color: "#4F46E5" },
-    { label: "Accuracy", value: "85%", icon: "trending-up", color: "#10B981" },
-    { label: "Streak", value: "12", icon: "flame", color: "#F59E0B" },
-    { label: "Flashcards", value: "156", icon: "copy", color: "#7C3AED" },
-  ];
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder ? `${hours}g ${remainder}p` : `${hours} giờ`;
+};
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <Text className="mb-4 text-xl font-bold text-text-primary">{children}</Text>
+  );
+}
+
+function LearningStat({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  tone: "primary" | "warning" | "error";
+}) {
+  const tones = {
+    primary: { box: "bg-primary/10", color: "#4F46E5" },
+    warning: { box: "bg-warning/10", color: "#F59E0B" },
+    error: { box: "bg-error/10", color: "#EF4444" },
+  } as const;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <StatusBar barStyle="light-content" />
-      <ScrollView 
+    <View className="flex-1 items-center px-1">
+      <View className={`mb-2 h-10 w-10 items-center justify-center rounded-2xl ${tones[tone].box}`}>
+        <Ionicons name={icon} size={20} color={tones[tone].color} />
+      </View>
+      <Text className="text-base font-bold text-text-primary">{value}</Text>
+      <Text className="mt-1 text-center text-xs text-text-secondary">{label}</Text>
+    </View>
+  );
+}
+
+function ProgressStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="w-[48%] rounded-2xl border border-gray-100 bg-white p-4">
+      <Ionicons name={icon} size={21} color="#4F46E5" />
+      <Text className="mt-4 text-2xl font-bold text-text-primary">{value}</Text>
+      <Text className="mt-1 text-xs leading-4 text-text-secondary">{label}</Text>
+    </View>
+  );
+}
+
+function QuickAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="w-[48%] flex-row items-center rounded-2xl border border-gray-100 bg-white p-4 active:bg-gray-50"
+    >
+      <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+        <Ionicons name={icon} size={20} color="#4F46E5" />
+      </View>
+      <Text className="flex-1 font-semibold text-text-primary">{label}</Text>
+      <Ionicons name="chevron-forward" size={17} color="#94A3B8" />
+    </Pressable>
+  );
+}
+
+function RecentResult({ result }: { result: ProgressResult }) {
+  return (
+    <View className="mb-3 flex-row items-center rounded-2xl border border-gray-100 bg-white p-4">
+      <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-success/10">
+        <Ionicons name="checkmark" size={21} color="#10B981" />
+      </View>
+      <View className="flex-1 pr-3">
+        <Text className="font-semibold text-text-primary" numberOfLines={1}>
+          {result.exam?.title || `Quiz #${result.examId}`}
+        </Text>
+        <Text className="mt-1 text-xs text-text-secondary">
+          {formatCompletedDate(result.completedAt)} · {result.score}/{result.total} câu
+        </Text>
+      </View>
+      <Text className="font-bold text-primary">{result.percentage}%</Text>
+    </View>
+  );
+}
+
+export default function ProfileScreen() {
+  const router = useRouter();
+  const { user, logout, refreshUser } = useAuthStore();
+  const { summary: gamification, fetchSummary } = useGamificationStore();
+  const [results, setResults] = useState<ProgressResult[]>([]);
+  const [flashcards, setFlashcards] = useState<FlashcardSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const progress = useMemo(() => calculateProgressSummary(results), [results]);
+  const recentResults = useMemo(
+    () => sortResultsByDate(results).slice(0, 3),
+    [results],
+  );
+
+  const loadDashboard = useCallback(async (refreshing = false) => {
+    if (refreshing) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+    setError(null);
+
+    try {
+      const [nextResults, nextFlashcards] = await Promise.all([
+        getProgressResults(),
+        getFlashcardSummary(),
+        refreshUser(),
+        fetchSummary(),
+      ]);
+      setResults(nextResults);
+      setFlashcards(nextFlashcards);
+    } catch (loadError) {
+      console.error("Lỗi tải bảng điều khiển cá nhân:", loadError);
+      setError("Không thể cập nhật toàn bộ dữ liệu. Kéo xuống để thử lại.");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [fetchSummary, refreshUser]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [loadDashboard]),
+  );
+
+  const handleLogout = () => {
+    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
+      { text: "Hủy", style: "cancel" },
+      { text: "Đăng xuất", style: "destructive", onPress: logout },
+    ]);
+  };
+
+  const showComingSoon = (feature: string) =>
+    Alert.alert(feature, "Tính năng này đang được phát triển.");
+
+  return (
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+      <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadDashboard(true)}
+            tintColor="#4F46E5"
+          />
+        }
+        contentContainerClassName="px-5 pb-32"
       >
-        {/* 1. Profile Header Card */}
-        <Animated.View 
-          entering={FadeIn.duration(800)}
-          className="mx-5 mt-4 shadow-xl shadow-primary/30"
-        >
-          <LinearGradient
-            colors={['#4F46E5', '#7C3AED']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 20, padding: 24 }}
-          >
-            <View className="flex-row items-center justify-between mb-6 px-3">
-              <View className="flex-row items-center">
-                <View className="relative">
-                  <Image
-                    source={user?.avatar || require('../../assets/images/default_avatar.png')}
-                    className="w-20 h-20 rounded-full border-4 border-white/30"
-                    contentFit="cover"
-                    transition={500}
-                  />
-                  <TouchableOpacity 
-                    onPress={handleEditProfile}
-                    className="absolute bottom-0 right-0 bg-white w-7 h-7 rounded-full items-center justify-center shadow-sm"
-                  >
-                    <Ionicons name="camera" size={14} color="#4F46E5" />
-                  </TouchableOpacity>
-                </View>
-                <View className="ml-4">
-                  <Text className="text-white text-xl font-bold">
-                    {user?.name || "Người dùng"}
-                  </Text>
-                  <Text className="text-white/80 text-sm">
-                    {user?.email || "user@example.com"}
-                  </Text>
-                </View>
-              </View>
-            </View>
+        <Text className="mb-5 mt-4 text-3xl font-bold text-text-primary">
+          Hồ sơ
+        </Text>
 
-            <View className="flex-row justify-between bg-white/10 rounded-[20px] p-4">
-              <View className="items-center flex-1 border-r border-white/20">
-                <Text className="text-white/70 text-xs font-medium mb-1">Level</Text>
-                <Text className="text-white text-lg font-bold">12</Text>
-              </View>
-              <View className="items-center flex-1">
-                <Text className="text-white/70 text-xs font-medium mb-1">Tổng XP</Text>
-                <Text className="text-white text-lg font-bold">2,450</Text>
-              </View>
+        <View className="rounded-3xl bg-white p-5" style={styles.cardShadow}>
+          <View className="flex-row items-center">
+            <Image
+              source={user?.avatar || require("../../assets/images/default_avatar.png")}
+              className="h-20 w-20 rounded-full bg-gray-100"
+              contentFit="cover"
+              transition={200}
+            />
+            <View className="ml-4 flex-1">
+              <Text className="text-xl font-bold text-text-primary">
+                {user?.name || "Người dùng"}
+              </Text>
+              {user?.email ? (
+                <Text className="mt-1 text-sm text-text-secondary" numberOfLines={1}>
+                  {user.email}
+                </Text>
+              ) : null}
             </View>
-          </LinearGradient>
-        </Animated.View>
+            <Pressable
+              onPress={() => showComingSoon("Chỉnh sửa hồ sơ")}
+              className="h-10 w-10 items-center justify-center rounded-full bg-gray-50 active:bg-gray-100"
+            >
+              <Ionicons name="create-outline" size={20} color="#4F46E5" />
+            </Pressable>
+          </View>
 
-        {/* 2. Achievement Summary */}
-        <View className="mx-5 mt-8">
-          <Text className="text-text-primary text-lg font-bold mb-4">Thành tích học tập</Text>
-          <View className="flex-row flex-wrap -m-2">
-            {achievements.map((item, index) => (
-              <View key={index} className="w-1/2 p-2">
-                <AchievementCard 
-                  index={index}
-                  {...item}
-                  icon={item.icon as any}
-                  className="m-0"
-                />
-              </View>
-            ))}
+          <View className="mt-5 flex-row rounded-2xl bg-gray-50 px-2 py-4">
+            <LearningStat
+              icon="flash-outline"
+              label="XP"
+              value={formatNumber(gamification?.xp ?? user?.xp)}
+              tone="warning"
+            />
+            <LearningStat
+              icon="star-outline"
+              label="Cấp hiện tại"
+              value={`${gamification?.level ?? 1}`}
+              tone="primary"
+            />
+            <LearningStat
+              icon="flame-outline"
+              label="Streak"
+              value={`${formatNumber(gamification?.current_streak ?? user?.current_streak)} ngày`}
+              tone="error"
+            />
           </View>
         </View>
 
-        {/* 3. Menu Section */}
-        <Animated.View 
-          entering={FadeInUp.delay(400).duration(600)}
-          className="mx-5 mt-8 bg-white rounded-[20px] p-2 shadow-sm border border-gray-50"
-        >
-          <ProfileMenuItem 
-            icon="person-outline" 
-            label="Chỉnh sửa hồ sơ" 
-            onPress={handleEditProfile} 
-          />
-          <ProfileMenuItem 
-            icon="trophy-outline" 
-            label="Thành tích của tôi" 
-            onPress={() => {}} 
-          />
-          <ProfileMenuItem 
-            icon="settings-outline" 
-            label="Cài đặt học tập" 
-            onPress={() => {}} 
-          />
-          <ProfileMenuItem 
-            icon="notifications-outline" 
-            label="Thông báo" 
-            onPress={() => {}} 
-          />
-          <ProfileMenuItem 
-            icon="help-circle-outline" 
-            label="Hỗ trợ & Góp ý" 
-            onPress={() => {}} 
-          />
-          <ProfileMenuItem 
-            icon="information-circle-outline" 
-            label="Về ứng dụng" 
-            onPress={() => {}} 
-            isLast={true}
-          />
-        </Animated.View>
+        {error ? (
+          <View className="mt-4 flex-row rounded-2xl border border-warning/20 bg-warning/10 p-4">
+            <Ionicons name="alert-circle-outline" size={20} color="#F59E0B" />
+            <Text className="ml-3 flex-1 text-sm leading-5 text-text-secondary">{error}</Text>
+          </View>
+        ) : null}
 
-        {/* 4. Logout Button */}
-        <Animated.View 
-          entering={FadeInUp.delay(600).duration(600)}
-          className="mx-5 mt-8"
+        <View className="mt-7">
+          <SectionTitle>Tiến độ học tập</SectionTitle>
+          {isLoading ? (
+            <View className="items-center rounded-3xl bg-white py-10">
+              <ActivityIndicator color="#4F46E5" />
+            </View>
+          ) : (
+            <>
+              <View className="flex-row flex-wrap justify-between gap-y-3">
+                <ProgressStat icon="checkmark-circle-outline" label="Quiz đã hoàn thành" value={formatNumber(progress.completedCount)} />
+                <ProgressStat icon="analytics-outline" label="Điểm trung bình" value={`${progress.averageScore}%`} />
+                <ProgressStat icon="layers-outline" label="Flashcards đã thuộc" value={formatNumber(flashcards?.masteredCount)} />
+                <ProgressStat icon="time-outline" label="Thời gian học quiz" value={formatStudyTime(progress.totalStudyTime)} />
+                <ProgressStat icon="shield-checkmark-outline" label="Tỷ lệ trả lời đúng" value={`${progress.accuracyRate}%`} />
+                <ProgressStat icon="ribbon-outline" label="Điểm cao nhất" value={`${progress.bestScore}%`} />
+              </View>
+
+              {results.length === 0 ? (
+                <View className="mt-3 items-center rounded-3xl border border-gray-100 bg-white p-7">
+                  <Ionicons name="bar-chart-outline" size={30} color="#4F46E5" />
+                  <Text className="mt-3 font-semibold text-text-primary">Chưa có dữ liệu quiz</Text>
+                  <Text className="mt-1 text-center text-sm text-text-secondary">
+                    Hoàn thành một quiz để bắt đầu theo dõi tiến độ.
+                  </Text>
+                </View>
+              ) : null}
+            </>
+          )}
+        </View>
+
+        <View className="mt-7">
+          <SectionTitle>Thao tác nhanh</SectionTitle>
+          <View className="flex-row flex-wrap justify-between gap-y-3">
+            <QuickAction icon="trophy-outline" label="Thành tích" onPress={() => router.push("/achievements")} />
+            <QuickAction icon="podium-outline" label="Bảng xếp hạng" onPress={() => router.push("/leaderboard")} />
+            <QuickAction
+              icon="people-outline"
+              label="Nhóm của tôi"
+              onPress={() => router.push("/community" as Href)}
+            />
+            <QuickAction icon="settings-outline" label="Cài đặt" onPress={() => showComingSoon("Cài đặt")} />
+          </View>
+        </View>
+
+        {recentResults.length > 0 ? (
+          <View className="mt-7">
+            <SectionTitle>Kết quả gần đây</SectionTitle>
+            {recentResults.map((result) => (
+              <RecentResult key={result.id || `${result.examId}-${result.completedAt}`} result={result} />
+            ))}
+          </View>
+        ) : null}
+
+        <Pressable
+          onPress={handleLogout}
+          className="mt-8 flex-row items-center justify-center rounded-2xl border border-red-100 bg-red-50 py-4 active:bg-red-100"
         >
-          <TouchableOpacity 
-            onPress={handleLogout}
-            className="flex-row items-center justify-center bg-red-50 py-4 rounded-xl border border-red-100"
-          >
-            <Ionicons name="log-out-outline" size={22} color="#EF4444" className="mr-2" />
-            <Text className="text-red-500 font-bold text-lg ml-2">Đăng xuất</Text>
-          </TouchableOpacity>
-          <Text className="text-center text-text-secondary text-xs mt-6">
-            Phiên bản 1.0.0 (Build 20260512)
-          </Text>
-        </Animated.View>
+          <Ionicons name="log-out-outline" size={21} color="#EF4444" />
+          <Text className="ml-2 font-bold text-error">Đăng xuất</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  cardShadow: {
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+});

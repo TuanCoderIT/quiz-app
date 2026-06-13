@@ -1,8 +1,9 @@
-export { AppBackground } from './AppBackground';
-export { PrimaryButton, SecondaryButton } from './AppButton';
-export { AIChip, Badge } from './Badge';
-export { GlassCard } from './GlassCard';
-export { PillTabs } from './PillTabs';
-export { ScreenContainer } from './ScreenContainer';
-export { SectionHeader } from './SectionHeader';
-export { StatCard } from './StatCard';
+export { AppBackground } from "./common/AppBackground";
+export { PrimaryButton, SecondaryButton } from "./common/AppButton";
+export { AIChip, Badge } from "./common/Badge";
+export { GlassCard } from "./common/GlassCard";
+export { PillTabs } from "./common/PillTabs";
+export { ScreenContainer } from "./common/ScreenContainer";
+export { SectionHeader } from "./common/SectionHeader";
+export { StatCard } from "./common/StatCard";
+

@@ -1,16 +1,23 @@
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '../../src/components/Button';
-import { Input } from '../../src/components/Input';
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "../../src/components/common/Button";
+import { Input } from "../../src/components/common/Input";
 
 const RegisterScreen = () => {
   const router = useRouter();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -18,18 +25,18 @@ const RegisterScreen = () => {
     // Simulate registration
     setTimeout(() => {
       setLoading(false);
-      router.replace('/(tabs)/flashcard');
+      router.replace("/(tabs)/flashcard");
     }, 1500);
   };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           className="px-6"
@@ -65,7 +72,7 @@ const RegisterScreen = () => {
               icon="mail-outline"
               keyboardType="email-address"
             />
-            
+
             <Input
               label="Password"
               placeholder="Create a password"
@@ -85,9 +92,9 @@ const RegisterScreen = () => {
             />
 
             <View className="mt-4">
-              <Button 
-                title="Create Account" 
-                onPress={handleRegister} 
+              <Button
+                title="Create Account"
+                onPress={handleRegister}
                 loading={loading}
               />
             </View>
@@ -96,12 +103,10 @@ const RegisterScreen = () => {
           {/* Footer */}
           <View className="flex-row justify-center mt-auto py-8">
             <Text className="text-text-secondary text-base">
-              Already have an account?{' '}
+              Already have an account?{" "}
             </Text>
-            <TouchableOpacity onPress={() => router.push('/login')}>
-              <Text className="text-primary font-bold text-base">
-                Sign In
-              </Text>
+            <TouchableOpacity onPress={() => router.push("/login")}>
+              <Text className="text-primary font-bold text-base">Sign In</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

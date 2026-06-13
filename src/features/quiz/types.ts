@@ -38,15 +38,11 @@ export interface QuizDetail {
 
 export interface QuizAnswerSubmission {
   question_id: number;
-  type: QuizQuestionType;
-  answer: string;
+  user_answer: string | null;
 }
 
 export interface QuizResultPayload {
   exam_id: number;
   time_spent: number;
-  completed_at: string;
-  score?: number;
-  total?: number;
-  percentage?: number;
+  answers: QuizAnswerSubmission[];
 }

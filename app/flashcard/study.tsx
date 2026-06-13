@@ -1,14 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
 import Animated, {
   interpolate,
   runOnJS,
@@ -16,9 +15,14 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { FlashcardReviewRating } from '../../src/features/flashcard/types';
-import { useFlashcardStore } from '../../src/stores/flashcard.store';
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthStore } from "../../src/features/auth/store";
+import { useFlashcardStore } from "../../src/features/flashcard/store";
+import { FlashcardReviewRating } from "../../src/features/flashcard/types";
+import { XpToast } from "../../src/features/gamification/components/XpToast";
+
+const STUDY_BACKGROUND = "#EEF2FF";
 
 export default function FlashcardStudyScreen() {
   const { id } = useLocalSearchParams();
@@ -26,23 +30,26 @@ export default function FlashcardStudyScreen() {
   const deckId = Array.isArray(id) ? id[0] : id;
 
   const studyDeck = useFlashcardStore((state) =>
-    deckId ? state.studyDecks[String(deckId)] : undefined
+    deckId ? state.studyDecks[String(deckId)] : undefined,
   );
   const fallbackDeck = useFlashcardStore((state) =>
     deckId
       ? state.deckDetails[String(deckId)] ||
         state.decks.find((deck) => String(deck.id) === String(deckId))
-      : undefined
+      : undefined,
   );
   const isStudyLoading = useFlashcardStore((state) => state.isStudyLoading);
   const error = useFlashcardStore((state) => state.error);
   const fetchStudyDeck = useFlashcardStore((state) => state.fetchStudyDeck);
   const submitReview = useFlashcardStore((state) => state.submitReview);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [masteredCount, setMasteredCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [xpToast, setXpToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const deck = studyDeck || fallbackDeck;
   const currentCard = deck?.cards[currentIndex];
@@ -55,6 +62,24 @@ export default function FlashcardStudyScreen() {
       void fetchStudyDeck(deckId);
     }
   }, [deckId, fetchStudyDeck]);
+
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const showXpToast = (label: string) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setXpToast(label);
+    toastTimerRef.current = setTimeout(() => setXpToast(null), 1600);
+  };
 
   useEffect(() => {
     setCurrentIndex(0);
@@ -105,8 +130,15 @@ export default function FlashcardStudyScreen() {
 
     try {
       await submitReview(currentCard.id, rating, deck.id);
+      await refreshUser().catch((refreshError) => {
+        console.error(
+          "Lỗi refresh user sau khi review flashcard:",
+          refreshError,
+        );
+      });
+      showXpToast("+5 XP");
 
-      if (rating === 'easy') {
+      if (rating === "easy") {
         setMasteredCount((prev) => prev + 1);
       }
 
@@ -151,7 +183,9 @@ export default function FlashcardStudyScreen() {
     return (
       <View className="flex-1 bg-white items-center justify-center px-8">
         <Ionicons name="alert-circle-outline" size={44} color="#94A3B8" />
-        <Text className="text-slate-900 text-xl font-bold mt-5">Thiếu mã bộ thẻ</Text>
+        <Text className="text-slate-900 text-xl font-bold mt-5">
+          Thiếu mã bộ thẻ
+        </Text>
         <Text className="text-slate-500 text-center mt-2">
           Không tìm thấy mã bộ thẻ trong đường dẫn hiện tại.
         </Text>
@@ -163,7 +197,9 @@ export default function FlashcardStudyScreen() {
     return (
       <View className="flex-1 bg-white items-center justify-center px-8">
         <ActivityIndicator size="small" color="#4F46E5" />
-        <Text className="text-slate-900 text-xl font-bold mt-5">Đang tải thẻ học</Text>
+        <Text className="text-slate-900 text-xl font-bold mt-5">
+          Đang tải thẻ học
+        </Text>
         <Text className="text-slate-500 text-center mt-2">
           Đang lấy dữ liệu học từ API flashcard.
         </Text>
@@ -179,7 +215,7 @@ export default function FlashcardStudyScreen() {
           Không tìm thấy bộ thẻ
         </Text>
         <Text className="text-slate-500 text-center mt-2">
-          {error || 'Bộ thẻ này không tồn tại hoặc chưa có dữ liệu học.'}
+          {error || "Bộ thẻ này không tồn tại hoặc chưa có dữ liệu học."}
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -195,7 +231,9 @@ export default function FlashcardStudyScreen() {
     return (
       <View className="flex-1 bg-white items-center justify-center px-8">
         <Ionicons name="file-tray-outline" size={44} color="#94A3B8" />
-        <Text className="text-slate-900 text-xl font-bold mt-5">Chưa có thẻ</Text>
+        <Text className="text-slate-900 text-xl font-bold mt-5">
+          Chưa có thẻ
+        </Text>
         <Text className="text-slate-500 text-center mt-2">
           API chưa trả về thẻ nào cho bộ này.
         </Text>
@@ -212,12 +250,16 @@ export default function FlashcardStudyScreen() {
   if (showResult) {
     return (
       <View className="flex-1 bg-white items-center justify-center px-10">
+        <XpToast label={xpToast} />
         <View className="w-40 h-40 bg-amber-50 rounded-full items-center justify-center mb-8">
           <Ionicons name="trophy" size={80} color="#F59E0B" />
         </View>
-        <Text className="text-slate-900 text-3xl font-bold mb-2">Chúc mừng!</Text>
+        <Text className="text-slate-900 text-3xl font-bold mb-2">
+          Chúc mừng!
+        </Text>
         <Text className="text-slate-500 text-center text-lg mb-10">
-          Bạn đã hoàn thành bộ thẻ này và thuộc được {masteredCount}/{deck.cards.length} từ.
+          Bạn đã hoàn thành bộ thẻ này và thuộc được {masteredCount}/
+          {deck.cards.length} từ.
         </Text>
 
         <TouchableOpacity
@@ -240,7 +282,8 @@ export default function FlashcardStudyScreen() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: deck.color || '#F1F5F9' }}>
+    <View className="flex-1" style={{ backgroundColor: STUDY_BACKGROUND }}>
+      <XpToast label={xpToast} />
       <SafeAreaView className="flex-1">
         <View className="px-6 py-4 flex-row items-center justify-between">
           <TouchableOpacity
@@ -250,7 +293,9 @@ export default function FlashcardStudyScreen() {
             <Ionicons name="close" size={28} color="#64748B" />
           </TouchableOpacity>
           <View className="items-center">
-            <Text className="text-slate-900 font-bold text-lg">Học lật thẻ</Text>
+            <Text className="text-slate-900 font-bold text-lg">
+              Học lật thẻ
+            </Text>
             <Text className="text-slate-500 text-xs">
               {currentIndex + 1} / {deck.cards.length}
             </Text>
@@ -262,7 +307,9 @@ export default function FlashcardStudyScreen() {
           <View className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden">
             <View
               className="h-full bg-white rounded-full"
-              style={{ width: `${((currentIndex + 1) / deck.cards.length) * 100}%` }}
+              style={{
+                width: `${((currentIndex + 1) / deck.cards.length) * 100}%`,
+              }}
             />
           </View>
         </View>
@@ -274,7 +321,11 @@ export default function FlashcardStudyScreen() {
             className="w-full aspect-[3/4]"
           >
             <Animated.View
-              style={[styles.card, frontAnimatedStyle, { backgroundColor: '#FFFFFF' }]}
+              style={[
+                styles.card,
+                frontAnimatedStyle,
+                { backgroundColor: "#FFFFFF" },
+              ]}
               className="shadow-2xl shadow-black/10 items-center justify-center p-10"
             >
               <Text className="text-slate-400 text-sm uppercase tracking-widest mb-10">
@@ -293,7 +344,7 @@ export default function FlashcardStudyScreen() {
               style={[
                 styles.card,
                 backAnimatedStyle,
-                { backgroundColor: '#FFFFFF', position: 'absolute' },
+                { backgroundColor: "#FFFFFF", position: "absolute" },
               ]}
               className="shadow-2xl shadow-black/10 items-center justify-center p-10"
             >
@@ -309,7 +360,11 @@ export default function FlashcardStudyScreen() {
                 </Text>
               ) : null}
               <View className="absolute bottom-10 items-center">
-                <Ionicons name="checkmark-circle-outline" size={24} color="#CBD5E1" />
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={24}
+                  color="#CBD5E1"
+                />
                 <Text className="text-slate-300 text-xs mt-2">Định nghĩa</Text>
               </View>
             </Animated.View>
@@ -317,35 +372,43 @@ export default function FlashcardStudyScreen() {
         </View>
 
         {error ? (
-          <Text className="text-rose-500 text-center text-xs px-8 mb-3">{error}</Text>
+          <Text className="text-rose-500 text-center text-xs px-8 mb-3">
+            {error}
+          </Text>
         ) : null}
 
         <View className="px-5 pb-10 flex-row">
           <TouchableOpacity
             disabled={isSubmitting}
-            onPress={() => handleReview('again')}
+            onPress={() => handleReview("again")}
             className="flex-1 bg-rose-100 py-4 rounded-[24px] items-center border border-rose-200 mr-2"
           >
             <Ionicons name="close-circle" size={25} color="#F43F5E" />
-            <Text className="text-rose-600 font-bold text-sm mt-1">Lại</Text>
+            <Text className="text-rose-600 font-bold text-sm mt-1">
+              Chưa thuộc
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             disabled={isSubmitting}
-            onPress={() => handleReview('hard')}
+            onPress={() => handleReview("hard")}
             className="flex-1 bg-amber-100 py-4 rounded-[24px] items-center border border-amber-200 mx-1"
           >
             <Ionicons name="alert-circle" size={25} color="#F59E0B" />
-            <Text className="text-amber-700 font-bold text-sm mt-1">Khó</Text>
+            <Text className="text-amber-700 font-bold text-sm mt-1">
+              Cần ôn lại
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             disabled={isSubmitting}
-            onPress={() => handleReview('easy')}
+            onPress={() => handleReview("easy")}
             className="flex-1 bg-emerald-100 py-4 rounded-[24px] items-center border border-emerald-200 ml-2"
           >
             <Ionicons name="checkmark-circle" size={25} color="#10B981" />
-            <Text className="text-emerald-700 font-bold text-sm mt-1">Thuộc</Text>
+            <Text className="text-emerald-700 font-bold text-sm mt-1">
+              Đã thuộc
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -355,9 +418,9 @@ export default function FlashcardStudyScreen() {
 
 const styles = StyleSheet.create({
   card: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 40,
-    backfaceVisibility: 'hidden',
+    backfaceVisibility: "hidden",
   },
 });

@@ -41,7 +41,11 @@ const unwrapResults = (payload: ResultsResponse): ApiResult[] => {
     return payload.data;
   }
 
-  if (payload.data && "data" in payload.data && Array.isArray(payload.data.data)) {
+  if (
+    payload.data &&
+    "data" in payload.data &&
+    Array.isArray(payload.data.data)
+  ) {
     return payload.data.data;
   }
 
@@ -73,7 +77,8 @@ const normalizeResult = (result: ApiResult): ProgressResult => {
     total,
     percentage: toNumber(result.percentage, fallbackPercentage),
     timeSpent: toNumber(result.time_spent),
-    completedAt: result.completed_at || result.created_at || new Date(0).toISOString(),
+    completedAt:
+      result.completed_at || result.created_at || new Date(0).toISOString(),
     exam: result.exam
       ? {
           id: toNumber(result.exam.id),

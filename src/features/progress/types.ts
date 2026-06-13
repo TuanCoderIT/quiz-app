@@ -1,5 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
-
 export type ProgressDifficulty = "Beginner" | "Intermediate" | "Advanced" | string;
 
 export type ProgressResultExam = {
@@ -27,14 +25,7 @@ export type ProgressSummary = {
   totalCorrect: number;
   totalQuestions: number;
   studyStreak: number;
+  totalStudyTime: number;
   bestScore: number;
   latestResult?: ProgressResult;
-};
-
-export type ProgressMetric = {
-  label: string;
-  value: string;
-  caption: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
 };

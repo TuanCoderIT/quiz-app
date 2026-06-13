@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,18 +12,35 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppBackground } from '../../src/components/AppBackground';
-import { FlashcardDeck } from '../../src/features/flashcard/types';
-import { useFlashcardStore } from '../../src/stores/flashcard.store';
+} from "react-native";
+import Animated, { FadeInUp } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AppBackground } from "../../src/components/common/AppBackground";
+import { useFlashcardStore } from "../../src/features/flashcard/store";
+import {
+  FlashcardDeck,
+  FlashcardSetStatus,
+  FlashcardSetVisibility,
+  FlashcardSourceType,
+} from "../../src/features/flashcard/types";
 
-const ALL_FILTER = 'Tất cả';
-const DUE_FILTER = 'Cần ôn';
+const ALL_FILTER = "Tất cả";
+const DUE_FILTER = "Cần ôn";
+const FLASHCARD_PRIMARY = "#4F46E5";
 
 const getProgress = (deck: FlashcardDeck) =>
-  deck.cardCount > 0 ? Math.round((deck.masteredCount / deck.cardCount) * 100) : 0;
+  deck.cardCount > 0
+    ? Math.round((deck.masteredCount / deck.cardCount) * 100)
+    : 0;
+
+const getCategoryLabel = (deck: FlashcardDeck) =>
+  deck.category?.name || "Flashcard";
+
+const sourceLabels: Record<FlashcardSourceType, string> = {
+  manual: "Thủ công",
+  quiz_wrong_answers: "Câu sai",
+  ai_generated: "AI",
+};
 
 const StatItem = ({
   label,
@@ -66,7 +83,10 @@ const FeedbackCard = ({
       <Pressable
         onPress={onAction}
         accessibilityRole="button"
-        style={({ pressed }) => [styles.feedbackAction, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.feedbackAction,
+          pressed && styles.pressed,
+        ]}
       >
         <Text style={styles.feedbackActionText}>{actionLabel}</Text>
       </Pressable>
@@ -77,55 +97,73 @@ const FeedbackCard = ({
 const DeckCard = ({ deck, index }: { deck: FlashcardDeck; index: number }) => {
   const router = useRouter();
   const progress = getProgress(deck);
+  const deleteDeck = useFlashcardStore((state) => state.deleteDeck);
+  const fetchDecks = useFlashcardStore((state) => state.fetchDecks);
 
   const openDeck = () => router.push(`/flashcard/${deck.id}`);
   const startStudy = () =>
-    router.push({ pathname: '/flashcard/study', params: { id: deck.id } });
+    router.push({ pathname: "/flashcard/study", params: { id: deck.id } });
+  const editDeck = () =>
+    router.push({
+      pathname: "/flashcard/edit" as never,
+      params: { id: deck.id },
+    });
+  const handleDelete = () => {
+    Alert.alert(
+      "Xóa bộ thẻ?",
+      "Bộ thẻ sẽ bị xóa hoặc lưu trữ nếu backend không hỗ trợ xóa.",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDeck(deck.id);
+              void fetchDecks();
+            } catch {
+              Alert.alert("Không xóa được", "Vui lòng thử lại sau.");
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
-    <Animated.View entering={FadeInUp.delay(index * 90).duration(500)}>
-      <Pressable
-        onPress={openDeck}
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.deckCard, pressed && styles.pressed]}
-      >
+    <Animated.View
+      entering={FadeInUp.delay(index * 90).duration(500)}
+      style={styles.deckCardWrapper}
+    >
+      <View style={styles.deckCard}>
         <View style={styles.deckHeader}>
-          <View style={[styles.deckIcon, { backgroundColor: deck.color }]}>
-            <Ionicons name="layers" size={22} color={deck.accent} />
-          </View>
-          <View style={styles.deckTitleBlock}>
+          <View style={styles.deckHeaderText}>
             <Text style={styles.deckTitle} numberOfLines={1}>
               {deck.title}
             </Text>
-            <Text style={styles.deckDescription} numberOfLines={2}>
-              {deck.description}
-            </Text>
+            <Text style={styles.deckDescription}>{deck.cardCount} thẻ</Text>
           </View>
-          <Pressable
-            onPress={startStudy}
-            accessibilityRole="button"
-            style={[styles.playButton, { backgroundColor: deck.accent }]}
-          >
-            <Ionicons name="play" size={18} color="#FFFFFF" />
-          </Pressable>
-        </View>
-
-        <View style={styles.deckMetaRow}>
-          <View style={styles.metaPill}>
-            <Text style={[styles.metaPillText, styles.metaPillTextSolo]}>
-              {deck.category}
-            </Text>
-          </View>
-          {deck.status ? (
-            <View style={styles.metaPill}>
-              <Text style={[styles.metaPillText, styles.metaPillTextSolo]}>
-                {deck.status}
-              </Text>
-            </View>
-          ) : null}
-          <View style={styles.metaPill}>
-            <Ionicons name="time-outline" size={13} color="#64748B" />
-            <Text style={styles.metaPillText}>{deck.estimatedMinutes} phút</Text>
+          <View style={styles.headerActionRow}>
+            <Pressable
+              onPress={editDeck}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.iconActionButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Ionicons name="create-outline" size={18} color="#0F172A" />
+            </Pressable>
+            <Pressable
+              onPress={handleDelete}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.iconDangerButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Ionicons name="trash-outline" size={19} color="#EF4444" />
+            </Pressable>
           </View>
         </View>
 
@@ -139,16 +177,44 @@ const DeckCard = ({ deck, index }: { deck: FlashcardDeck; index: number }) => {
           <View
             style={[
               styles.progressFill,
-              { width: `${progress}%`, backgroundColor: deck.accent },
+              { width: `${progress}%`, backgroundColor: FLASHCARD_PRIMARY },
             ]}
           />
         </View>
 
-        <View style={styles.deckFooter}>
-          <Text style={styles.dueText}>{deck.dueCount} thẻ cần ôn hôm nay</Text>
-          <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+        <View style={styles.cardActionRow}>
+          <Pressable
+            onPress={openDeck}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.detailButton,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Text style={styles.detailButtonText}>Chi tiết</Text>
+            <Ionicons name="chevron-forward" size={16} color="#0F172A" />
+          </Pressable>
+
+          <Pressable
+            onPress={startStudy}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.startButton,
+              pressed && { opacity: 0.9 },
+            ]}
+          >
+            <LinearGradient
+              colors={["#4F46E5", "#7C3AED"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.startButtonGradient}
+            >
+              <Text style={styles.startButtonText}>Bắt đầu</Text>
+              <Ionicons name="play" size={15} color="#FFFFFF" />
+            </LinearGradient>
+          </Pressable>
         </View>
-      </Pressable>
+      </View>
     </Animated.View>
   );
 };
@@ -156,20 +222,55 @@ const DeckCard = ({ deck, index }: { deck: FlashcardDeck; index: number }) => {
 export default function FlashcardTab() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState(ALL_FILTER);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<
+    FlashcardSourceType | undefined
+  >();
+  const [statusFilter, setStatusFilter] = useState<
+    FlashcardSetStatus | undefined
+  >();
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    FlashcardSetVisibility | undefined
+  >();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const decks = useFlashcardStore((state) => state.decks);
   const isLoading = useFlashcardStore((state) => state.isLoading);
   const error = useFlashcardStore((state) => state.error);
   const fetchDecks = useFlashcardStore((state) => state.fetchDecks);
+  const activeCategoryId = useMemo(() => {
+    if (activeFilter === ALL_FILTER || activeFilter === DUE_FILTER) {
+      return undefined;
+    }
+
+    return decks.find((deck) => getCategoryLabel(deck) === activeFilter)
+      ?.category?.id;
+  }, [activeFilter, decks]);
 
   useEffect(() => {
-    void fetchDecks();
-  }, [fetchDecks]);
+    const timeout = setTimeout(() => {
+      void fetchDecks({
+        source_type: sourceFilter,
+        status: statusFilter,
+        visibility: visibilityFilter,
+        category_id: activeCategoryId,
+        search: searchQuery.trim() || undefined,
+      });
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [
+    activeCategoryId,
+    fetchDecks,
+    searchQuery,
+    sourceFilter,
+    statusFilter,
+    visibilityFilter,
+  ]);
 
   const filters = useMemo(() => {
     const categoryFilters = decks
       .map((deck) => deck.category)
+      .map((category) => category?.name)
       .filter((category): category is string => Boolean(category));
 
     return [ALL_FILTER, DUE_FILTER, ...Array.from(new Set(categoryFilters))];
@@ -183,7 +284,10 @@ export default function FlashcardTab() {
 
   const totals = useMemo(() => {
     const totalCards = decks.reduce((sum, deck) => sum + deck.cardCount, 0);
-    const totalMastered = decks.reduce((sum, deck) => sum + deck.masteredCount, 0);
+    const totalMastered = decks.reduce(
+      (sum, deck) => sum + deck.masteredCount,
+      0,
+    );
     const dueToday = decks.reduce((sum, deck) => sum + deck.dueCount, 0);
     const progress =
       totalCards > 0 ? Math.round((totalMastered / totalCards) * 100) : 0;
@@ -193,7 +297,7 @@ export default function FlashcardTab() {
 
   const featuredDeck = useMemo(
     () => [...decks].sort((a, b) => b.dueCount - a.dueCount)[0],
-    [decks]
+    [decks],
   );
 
   const filteredDecks = useMemo(() => {
@@ -204,19 +308,19 @@ export default function FlashcardTab() {
         normalizedQuery.length === 0 ||
         deck.title.toLowerCase().includes(normalizedQuery) ||
         deck.description.toLowerCase().includes(normalizedQuery) ||
-        deck.category.toLowerCase().includes(normalizedQuery);
+        getCategoryLabel(deck).toLowerCase().includes(normalizedQuery);
 
       const matchesFilter =
         activeFilter === ALL_FILTER ||
         (activeFilter === DUE_FILTER && deck.dueCount > 0) ||
-        deck.category === activeFilter;
+        getCategoryLabel(deck) === activeFilter;
 
       return matchesSearch && matchesFilter;
     });
   }, [activeFilter, decks, searchQuery]);
 
   const handleCreateDeck = () => {
-    Alert.alert('Tạo bộ thẻ', 'Tính năng tạo bộ thẻ mới đang được phát triển.');
+    router.push("/flashcard/create");
   };
 
   const startFeaturedDeck = () => {
@@ -224,16 +328,25 @@ export default function FlashcardTab() {
       return;
     }
 
-    router.push({ pathname: '/flashcard/study', params: { id: featuredDeck.id } });
+    router.push({
+      pathname: "/flashcard/study",
+      params: { id: featuredDeck.id },
+    });
   };
 
   const refreshDecks = () => {
-    void fetchDecks();
+    void fetchDecks({
+      source_type: sourceFilter,
+      status: statusFilter,
+      visibility: visibilityFilter,
+      category_id: activeCategoryId,
+      search: searchQuery.trim() || undefined,
+    });
   };
 
   return (
     <AppBackground>
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={["top"]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -242,7 +355,7 @@ export default function FlashcardTab() {
               refreshing={isLoading}
               onRefresh={refreshDecks}
               tintColor="#4F46E5"
-              colors={['#4F46E5']}
+              colors={["#4F46E5"]}
             />
           }
         >
@@ -257,7 +370,10 @@ export default function FlashcardTab() {
             <Pressable
               onPress={handleCreateDeck}
               accessibilityRole="button"
-              style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.addButton,
+                pressed && styles.pressed,
+              ]}
             >
               <Ionicons name="add" size={26} color="#4F46E5" />
             </Pressable>
@@ -281,8 +397,7 @@ export default function FlashcardTab() {
                   {featuredDeck.title}
                 </Text>
                 <Text style={styles.heroDeckMeta}>
-                  {featuredDeck.dueCount} thẻ cần ôn ·{' '}
-                  {featuredDeck.estimatedMinutes} phút
+                  {featuredDeck.dueCount} thẻ cần ôn hôm nay
                 </Text>
 
                 <View style={styles.heroProgressTrack}>
@@ -303,7 +418,7 @@ export default function FlashcardTab() {
                   ]}
                 >
                   <LinearGradient
-                    colors={['#4F46E5', '#06B6D4']}
+                    colors={["#4F46E5", "#06B6D4"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.heroAction}
@@ -317,7 +432,7 @@ export default function FlashcardTab() {
               <View style={styles.heroEmpty}>
                 <Text style={styles.heroDeckTitle}>Chưa có bộ thẻ</Text>
                 <Text style={styles.heroDeckMeta}>
-                  Kéo xuống để tải lại hoặc tạo bộ thẻ mới khi tính năng sẵn sàng.
+                  Kéo xuống để tải lại hoặc tạo bộ thẻ thủ công.
                 </Text>
               </View>
             )}
@@ -361,7 +476,117 @@ export default function FlashcardTab() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterContent}
             >
+              <Pressable
+                onPress={() => {
+                  setSourceFilter(undefined);
+                  setStatusFilter(undefined);
+                  setVisibilityFilter(undefined);
+                  setActiveFilter(ALL_FILTER);
+                }}
+                accessibilityRole="button"
+                style={[
+                  styles.filterChip,
+                  !sourceFilter &&
+                  !statusFilter &&
+                  !visibilityFilter &&
+                  activeFilter === ALL_FILTER
+                    ? styles.activeFilterChip
+                    : undefined,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    !sourceFilter &&
+                    !statusFilter &&
+                    !visibilityFilter &&
+                    activeFilter === ALL_FILTER
+                      ? styles.activeFilterText
+                      : undefined,
+                  ]}
+                >
+                  Tất cả
+                </Text>
+              </Pressable>
+              {(["manual", "quiz_wrong_answers", "ai_generated"] as const).map(
+                (source) => (
+                  <Pressable
+                    key={source}
+                    onPress={() =>
+                      setSourceFilter(
+                        sourceFilter === source ? undefined : source,
+                      )
+                    }
+                    accessibilityRole="button"
+                    style={[
+                      styles.filterChip,
+                      sourceFilter === source && styles.activeFilterChip,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        sourceFilter === source && styles.activeFilterText,
+                      ]}
+                    >
+                      {sourceLabels[source]}
+                    </Text>
+                  </Pressable>
+                ),
+              )}
+              {(["draft", "published", "archived"] as const).map((status) => (
+                <Pressable
+                  key={status}
+                  onPress={() =>
+                    setStatusFilter(
+                      statusFilter === status ? undefined : status,
+                    )
+                  }
+                  accessibilityRole="button"
+                  style={[
+                    styles.filterChip,
+                    statusFilter === status && styles.activeFilterChip,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      statusFilter === status && styles.activeFilterText,
+                    ]}
+                  >
+                    {status}
+                  </Text>
+                </Pressable>
+              ))}
+              {(["private", "public"] as const).map((visibility) => (
+                <Pressable
+                  key={visibility}
+                  onPress={() =>
+                    setVisibilityFilter(
+                      visibilityFilter === visibility ? undefined : visibility,
+                    )
+                  }
+                  accessibilityRole="button"
+                  style={[
+                    styles.filterChip,
+                    visibilityFilter === visibility && styles.activeFilterChip,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      visibilityFilter === visibility &&
+                        styles.activeFilterText,
+                    ]}
+                  >
+                    {visibility}
+                  </Text>
+                </Pressable>
+              ))}
               {filters.map((filter) => {
+                if (filter === ALL_FILTER) {
+                  return null;
+                }
                 const active = activeFilter === filter;
 
                 return (
@@ -370,10 +595,16 @@ export default function FlashcardTab() {
                     onPress={() => setActiveFilter(filter)}
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}
-                    style={[styles.filterChip, active && styles.activeFilterChip]}
+                    style={[
+                      styles.filterChip,
+                      active && styles.activeFilterChip,
+                    ]}
                   >
                     <Text
-                      style={[styles.filterText, active && styles.activeFilterText]}
+                      style={[
+                        styles.filterText,
+                        active && styles.activeFilterText,
+                      ]}
                     >
                       {filter}
                     </Text>
@@ -440,9 +671,9 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     marginTop: 20,
     marginBottom: 16,
@@ -452,19 +683,19 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   eyebrow: {
-    color: '#4F46E5',
+    color: "#4F46E5",
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0,
     marginBottom: 6,
   },
   title: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   subtitle: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
     lineHeight: 19,
     marginTop: 5,
@@ -473,98 +704,98 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.82)',
+    backgroundColor: "rgba(255,255,255,0.82)",
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "rgba(226,232,240,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   heroCard: {
     marginHorizontal: 20,
     borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.72)',
+    borderColor: "rgba(226,232,240,0.72)",
     padding: 22,
-    shadowColor: '#0F172A',
+    shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.06,
     shadowRadius: 28,
     elevation: 2,
   },
   heroTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 18,
   },
   heroLabel: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 4,
   },
   heroTitle: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 34,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   heroBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 999,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: "#FFFBEB",
     borderWidth: 1,
-    borderColor: '#FEF3C7',
+    borderColor: "#FEF3C7",
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   heroBadgeText: {
-    color: '#B45309',
+    color: "#B45309",
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: "800",
     marginLeft: 5,
   },
   heroDeckTitle: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 5,
   },
   heroDeckMeta: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
     lineHeight: 19,
   },
   heroProgressTrack: {
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#E2E8F0',
-    overflow: 'hidden',
+    backgroundColor: "#E2E8F0",
+    overflow: "hidden",
     marginTop: 18,
     marginBottom: 18,
   },
   heroProgressFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 4,
-    backgroundColor: '#4F46E5',
+    backgroundColor: "#4F46E5",
   },
   heroActionWrapper: {
     borderRadius: 18,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   heroAction: {
     height: 52,
     borderRadius: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroActionText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "800",
     marginRight: 8,
   },
   heroEmpty: {
@@ -572,7 +803,7 @@ const styles = StyleSheet.create({
   },
 
   statsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
     marginHorizontal: 20,
     marginTop: 14,
@@ -581,28 +812,28 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 96,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.74)',
+    backgroundColor: "rgba(255,255,255,0.74)",
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.65)',
+    borderColor: "rgba(226,232,240,0.65)",
     padding: 12,
   },
   statIcon: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 8,
   },
   statValue: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 21,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   statLabel: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 3,
   },
 
@@ -610,24 +841,24 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 16,
     borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    backgroundColor: "rgba(255,255,255,0.76)",
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.7)',
+    borderColor: "rgba(226,232,240,0.7)",
     padding: 16,
   },
   searchBar: {
     height: 50,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderWidth: 1,
-    borderColor: 'rgba(203,213,225,0.55)',
+    borderColor: "rgba(203,213,225,0.55)",
     paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   searchInput: {
     flex: 1,
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 15,
     marginLeft: 10,
   },
@@ -637,220 +868,245 @@ const styles = StyleSheet.create({
   filterChip: {
     height: 36,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: "rgba(255,255,255,0.72)",
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.7)',
+    borderColor: "rgba(226,232,240,0.7)",
     paddingHorizontal: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 8,
   },
   activeFilterChip: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: "#4F46E5",
+    borderColor: "#4F46E5",
   },
   filterText: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   activeFilterText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
 
   listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    marginTop: 26,
-    marginBottom: 14,
+    marginTop: 32,
+    marginBottom: 18,
   },
   sectionTitle: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 19,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   sectionSubtitle: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
     marginTop: 3,
   },
   countBadge: {
     borderRadius: 999,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: "#EEF2FF",
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   countBadgeText: {
-    color: '#4F46E5',
+    color: "#4F46E5",
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   deckList: {
     paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 40,
   },
 
-  deckCard: {
-    borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.68)',
-    padding: 18,
+  deckCardWrapper: {
     marginBottom: 14,
-    shadowColor: '#0F172A',
+  },
+  deckCard: {
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(226,232,240,0.68)",
+    padding: 20,
+    shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 22,
     elevation: 2,
   },
   deckHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
   },
-  deckIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deckTitleBlock: {
+  deckHeaderText: {
     flex: 1,
-    marginLeft: 12,
     marginRight: 10,
   },
+  headerActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   deckTitle: {
-    color: '#0F172A',
-    fontSize: 17,
-    fontWeight: '800',
+    color: "#0F172A",
+    fontSize: 18,
+    fontWeight: "700",
     marginBottom: 4,
   },
   deckDescription: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
     lineHeight: 18,
   },
-  playButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deckMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 16,
-  },
-  metaPill: {
-    minHeight: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 999,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 10,
-  },
-  metaPillText: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  metaPillTextSolo: {
-    marginLeft: 0,
-  },
   progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
     marginBottom: 8,
   },
   progressText: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   progressMeta: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   progressTrack: {
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#E2E8F0',
-    overflow: 'hidden',
+    backgroundColor: "#E2E8F0",
+    overflow: "hidden",
   },
   progressFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 4,
   },
-  deckFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 14,
+  cardActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 16,
   },
-  dueText: {
-    color: '#475569',
-    fontSize: 13,
-    fontWeight: '700',
+  detailButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+
+  startButton: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+
+  startButtonGradient: {
+    height: 48,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  detailButtonText: {
+    color: "#000000",
+    fontSize: 15,
+    fontWeight: "700",
+    marginRight: 4,
+  },
+  startButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    marginRight: 6,
+  },
+  iconActionButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconDangerButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingCard: {
     minHeight: 136,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "rgba(226,232,240,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 14,
   },
   loadingText: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 10,
   },
   feedbackCard: {
     minHeight: 168,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "rgba(226,232,240,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
     marginBottom: 14,
   },
   feedbackTitle: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "800",
     marginTop: 12,
   },
   feedbackText: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 13,
     lineHeight: 19,
     marginTop: 6,
-    textAlign: 'center',
+    textAlign: "center",
   },
   feedbackAction: {
     borderRadius: 999,
-    backgroundColor: '#4F46E5',
+    backgroundColor: "#4F46E5",
     paddingHorizontal: 16,
     paddingVertical: 9,
     marginTop: 14,
   },
   feedbackActionText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: "800",
   },
 });

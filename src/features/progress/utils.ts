@@ -1,4 +1,4 @@
-import { ProgressMetric, ProgressResult, ProgressSummary } from "./types";
+import { ProgressResult, ProgressSummary } from "./types";
 
 const getDateKey = (value: string) => {
   const date = new Date(value);
@@ -22,7 +22,7 @@ const addDays = (date: Date, days: number) => {
 
 const calculateStudyStreak = (results: ProgressResult[]) => {
   const completedDays = new Set(
-    results.map((result) => getDateKey(result.completedAt)).filter(Boolean)
+    results.map((result) => getDateKey(result.completedAt)).filter(Boolean),
   );
 
   if (completedDays.size === 0) {
@@ -55,20 +55,29 @@ const calculateStudyStreak = (results: ProgressResult[]) => {
 
 export const sortResultsByDate = (results: ProgressResult[]) => {
   return [...results].sort(
-    (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    (a, b) =>
+      new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
   );
 };
 
-export const calculateProgressSummary = (results: ProgressResult[]): ProgressSummary => {
+export const calculateProgressSummary = (
+  results: ProgressResult[],
+): ProgressSummary => {
   const completedResults = results.filter((result) => result.total > 0);
   const completedCount = results.length;
-  const totalCorrect = completedResults.reduce((sum, result) => sum + result.score, 0);
-  const totalQuestions = completedResults.reduce((sum, result) => sum + result.total, 0);
+  const totalCorrect = completedResults.reduce(
+    (sum, result) => sum + result.score,
+    0,
+  );
+  const totalQuestions = completedResults.reduce(
+    (sum, result) => sum + result.total,
+    0,
+  );
   const averageScore =
     completedResults.length > 0
       ? Math.round(
           completedResults.reduce((sum, result) => sum + result.percentage, 0) /
-            completedResults.length
+            completedResults.length,
         )
       : 0;
   const accuracyRate =
@@ -77,6 +86,10 @@ export const calculateProgressSummary = (results: ProgressResult[]): ProgressSum
     completedResults.length > 0
       ? Math.max(...completedResults.map((result) => result.percentage))
       : 0;
+  const totalStudyTime = results.reduce(
+    (sum, result) => sum + Math.max(0, result.timeSpent || 0),
+    0,
+  );
 
   return {
     completedCount,
@@ -85,35 +98,10 @@ export const calculateProgressSummary = (results: ProgressResult[]): ProgressSum
     totalCorrect,
     totalQuestions,
     studyStreak: calculateStudyStreak(results),
+    totalStudyTime,
     bestScore,
     latestResult: sortResultsByDate(results)[0],
   };
-};
-
-export const buildProgressMetrics = (summary: ProgressSummary): ProgressMetric[] => {
-  return [
-    {
-      label: "Điểm trung bình",
-      value: `${summary.averageScore}%`,
-      caption: `${summary.completedCount} bài đã làm`,
-      icon: "analytics-outline",
-      color: "#4F46E5",
-    },
-    {
-      label: "Tỷ lệ đúng",
-      value: `${summary.accuracyRate}%`,
-      caption: `${summary.totalCorrect}/${summary.totalQuestions} câu`,
-      icon: "checkmark-done-outline",
-      color: "#10B981",
-    },
-    {
-      label: "Streak học tập",
-      value: `${summary.studyStreak}`,
-      caption: summary.studyStreak > 0 ? "ngày liên tiếp" : "chưa có streak",
-      icon: "flame-outline",
-      color: "#F59E0B",
-    },
-  ];
 };
 
 export const formatCompletedDate = (value: string) => {

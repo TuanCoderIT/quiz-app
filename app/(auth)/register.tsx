@@ -25,7 +25,7 @@ const RegisterScreen = () => {
     // Simulate registration
     setTimeout(() => {
       setLoading(false);
-      router.replace("/(tabs)/flashcard");
+      router.replace("/(tabs)");
     }, 1500);
   };
 
@@ -47,25 +47,25 @@ const RegisterScreen = () => {
               <Text className="text-4xl">🎓</Text>
             </View>
             <Text className="text-text-primary text-3xl font-bold mb-2">
-              Create Account
+              Đăng ký tài khoản
             </Text>
             <Text className="text-text-secondary text-center text-base px-4">
-              Start your smart learning journey today with AI-powered quizzes
+              Tạo tài khoản để bắt đầu hành trình học tập của bạn.
             </Text>
           </View>
 
           {/* Form Card */}
           <View className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 mb-6">
             <Input
-              label="Full Name"
-              placeholder="Enter your name"
+              label="Họ và tên"
+              placeholder="Nhập họ và tên của bạn"
               value={fullName}
               onChangeText={setFullName}
               icon="person-outline"
             />
 
             <Input
-              label="Email Address"
+              label="Email"
               placeholder="name@example.com"
               value={email}
               onChangeText={setEmail}
@@ -74,8 +74,8 @@ const RegisterScreen = () => {
             />
 
             <Input
-              label="Password"
-              placeholder="Create a password"
+              label="Mật khẩu"
+              placeholder="********"
               value={password}
               onChangeText={setPassword}
               icon="lock-closed-outline"
@@ -83,8 +83,8 @@ const RegisterScreen = () => {
             />
 
             <Input
-              label="Confirm Password"
-              placeholder="Repeat your password"
+              label="Xác nhận mật khẩu"
+              placeholder="********"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               icon="shield-checkmark-outline"
@@ -93,7 +93,7 @@ const RegisterScreen = () => {
 
             <View className="mt-4">
               <Button
-                title="Create Account"
+                title="Đăng ký"
                 onPress={handleRegister}
                 loading={loading}
               />
@@ -103,10 +103,10 @@ const RegisterScreen = () => {
           {/* Footer */}
           <View className="flex-row justify-center mt-auto py-8">
             <Text className="text-text-secondary text-base">
-              Already have an account?{" "}
+              Bạn đã có tài khoản?{" "}
             </Text>
             <TouchableOpacity onPress={() => router.push("/login")}>
-              <Text className="text-primary font-bold text-base">Sign In</Text>
+              <Text className="text-primary font-bold text-base">Đăng nhập</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

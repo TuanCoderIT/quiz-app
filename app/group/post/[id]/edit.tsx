@@ -1,0 +1,1 @@
+export { default } from "@/src/features/group/screens/EditPostScreen";

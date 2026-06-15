@@ -49,7 +49,7 @@ export const Input: React.FC<InputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  if (variant === "liquid") {
+  if (variant === "liquid" || variant === "default") {
     return (
       <View style={[styles.liquidWrapper, containerStyle]}>
         {label ? <Text style={styles.liquidLabel}>{label}</Text> : null}

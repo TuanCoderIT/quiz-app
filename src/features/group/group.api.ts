@@ -1,4 +1,4 @@
-import { axiosAPI } from "../../services/api/client";
+import { axiosAPI } from "@/src/services/api/client";
 import { PaginatedResponse } from "./common.types";
 import {
   CreateGroupRequest,

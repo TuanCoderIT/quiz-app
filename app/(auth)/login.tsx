@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AppBackground, GlassCard, PrimaryButton } from "../../src/components";
+import { AppBackground, AppCard, PrimaryButton } from "../../src/components";
 import { Input } from "../../src/components/common/Input";
 import { useAuthStore } from "../../src/features/auth/store";
 
@@ -87,7 +87,7 @@ const LoginScreen = () => {
 
     try {
       await login(email.trim(), password);
-      router.replace("/(tabs)/practice");
+      router.replace("/(tabs)");
     } catch (error) {
       setFormError(getLoginErrorMessage(error));
     }
@@ -97,36 +97,35 @@ const LoginScreen = () => {
     <AppBackground>
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
           <ScrollView
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="always"
-            keyboardDismissMode="none"
+            contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
+            className="px-6"
           >
             <View style={styles.header}>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>AI PRACTICE</Text>
+                <Text style={styles.badgeText}>Quiz App</Text>
               </View>
 
-              <Text style={styles.title}>Welcome back</Text>
+              <Text style={styles.title}>Chào mừng bạn</Text>
               <Text style={styles.subtitle}>
-                Continue your learning flow with focused quizzes and clear
-                progress.
+                Tiếp tục quá trình học tập của bạn ngay bây giờ!
               </Text>
             </View>
 
-            <GlassCard>
-              <Text style={styles.cardTitle}>Sign in</Text>
+            <AppCard>
+              <Text style={styles.cardTitle}>Đăng nhập</Text>
               <Text style={styles.cardSubtitle}>
-                Use your account to pick up right where you left off.
+                Sử dụng tài khoản của bạn để tiếp tục từ nơi bạn đã dừng lại.
               </Text>
 
               <Input
                 variant="liquid"
-                label="Email address"
+                label="Email"
                 placeholder="name@example.com"
                 value={email}
                 onChangeText={(value) => {
@@ -143,7 +142,7 @@ const LoginScreen = () => {
 
               <Input
                 variant="liquid"
-                label="Password"
+                label="Mật khẩu"
                 placeholder="Enter your password"
                 value={password}
                 onChangeText={(value) => {
@@ -169,24 +168,24 @@ const LoginScreen = () => {
                 onPress={() => router.push("/forgot-password")}
                 style={styles.forgot}
               >
-                <Text style={styles.forgotText}>Forgot password?</Text>
+                <Text style={styles.forgotText}>Quên mật khẩu?</Text>
               </Pressable>
 
               <PrimaryButton
-                title="Sign In"
+                title="Đăng nhập"
                 onPress={handleLogin}
                 loading={isAuthLoading}
               />
-            </GlassCard>
+            </AppCard>
 
             <View style={styles.signup}>
-              <Text style={styles.signupText}>New to Quiz App?</Text>
+              <Text style={styles.signupText}>Lần đầu đến với Quiz App?</Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => router.push("/register")}
                 hitSlop={8}
               >
-                <Text style={styles.signupLink}>Create Account</Text>
+                <Text style={styles.signupLink}>Tạo tài khoản mới</Text>
               </Pressable>
             </View>
           </ScrollView>

@@ -1,13 +1,15 @@
+import { getImageUrl } from "@/src/utils/image";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   RefreshControl,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
 import { getLeaderboard } from "../src/features/leaderboard/api";
 import {
   LeaderboardResponse,
@@ -21,8 +23,8 @@ export default function LeaderboardScreen() {
   const [showAll, setShowAll] = useState(false);
 
   const visibleUsers = showAll
-    ? data?.data ?? []
-    : data?.data.slice(0, 10) ?? [];
+    ? (data?.data ?? [])
+    : (data?.data.slice(0, 10) ?? []);
 
   const fetchLeaderboard = async () => {
     try {
@@ -128,6 +130,11 @@ function LeaderboardItem({ item }: { item: LeaderboardUser }) {
           ? "🥉"
           : null;
 
+  const avatarUrl = getImageUrl(item.avatar);
+  
+  console.log("Avatar raw:", item.avatar);
+  console.log("Avatar URL:", avatarUrl);
+
   return (
     <View
       className={`mb-3 flex-row items-center rounded-2xl p-4 ${
@@ -142,11 +149,18 @@ function LeaderboardItem({ item }: { item: LeaderboardUser }) {
         </Text>
       </View>
 
-      <View className="ml-3 h-11 w-11 items-center justify-center rounded-full bg-gray-200">
-        <Text className="font-bold text-gray-700">
-          {item.name?.charAt(0)?.toUpperCase() ?? "U"}
-        </Text>
-      </View>
+      {avatarUrl ? (
+        <Image
+          source={{ uri: avatarUrl }}
+          className="ml-3 h-11 w-11 rounded-full"
+        />
+      ) : (
+        <View className="ml-3 h-11 w-11 items-center justify-center rounded-full bg-gray-200">
+          <Text className="font-bold text-gray-700">
+            {item.name?.charAt(0)?.toUpperCase() ?? "U"}
+          </Text>
+        </View>
+      )}
 
       <View className="ml-3 flex-1">
         <Text className="font-semibold text-gray-900" numberOfLines={1}>

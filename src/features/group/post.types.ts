@@ -46,3 +46,13 @@ export interface UpdatePostRequest {
   attachments?: string[];
   visibility?: "public" | "private" | "group_only";
 }
+
+export interface PostComment {
+  id: number;
+  post_id: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  user: CommunityUser;
+}

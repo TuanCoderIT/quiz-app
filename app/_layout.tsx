@@ -3,6 +3,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "../global.css";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AchievementUnlockPopup } from "../src/features/gamification/components/AchievementUnlockPopup";
 
 // Keep the splash screen visible while we fetch resources
@@ -15,7 +16,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <KeyboardProvider>
       <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />
 
       <Stack screenOptions={{ headerShown: false }}>
@@ -25,6 +26,6 @@ export default function RootLayout() {
       </Stack>
 
       <AchievementUnlockPopup />
-    </>
+    </KeyboardProvider>
   );
 }

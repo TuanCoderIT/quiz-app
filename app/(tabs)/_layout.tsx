@@ -1,3 +1,5 @@
+import { useAuthStore } from "@/src/features/auth/store";
+import { useRealtimeNotifications } from "@/src/features/notification/hooks/useRealtimeNotifications";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -5,6 +7,10 @@ import React from "react";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
+  const user = useAuthStore((state) => state.user);
+
+  useRealtimeNotifications(user?.id);
+  
   return (
     <>
       <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />

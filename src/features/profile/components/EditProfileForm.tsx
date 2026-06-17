@@ -1,18 +1,19 @@
+import { getImageUrl } from "@/src/utils/image";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   Text,
   View,
 } from "react-native";
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
-
-import ProfileInput from "./ProfileInput";
 import { updateProfile } from "../api";
-import { getImageUrl } from "@/src/utils/image";
+import ProfileInput from "./ProfileInput";
+import { formatDate } from "@/src/utils/formatDate";
 
 type Props = {
   user: any;
@@ -28,6 +29,7 @@ export default function EditProfileForm({ user, onCancel, onSuccess }: Props) {
   const [bio, setBio] = useState(user?.bio ?? "");
   const [avatar, setAvatar] = useState<string | null>(user?.avatar ?? null);
   const [saving, setSaving] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const isLocalImage =
     avatar?.startsWith("file:") || avatar?.startsWith("content:");
@@ -91,8 +93,17 @@ export default function EditProfileForm({ user, onCancel, onSuccess }: Props) {
     }
   };
 
+  const handleDateChange = (_: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+
+    if (selectedDate) {
+      const formatted = selectedDate.toISOString().split("T")[0];
+      setDateOfBirth(formatted);
+    }
+  };
+
   return (
-    <View className="mt-4 rounded-3xl bg-white p-5">
+    <View className="mt-4 rounded-3xl bg-white p-5 shadow-blue-400 shadow-xl">
       <View className="mb-5 flex-row items-center justify-between">
         <Text className="text-lg font-bold text-gray-900">
           Chỉnh sửa thông tin
@@ -103,16 +114,16 @@ export default function EditProfileForm({ user, onCancel, onSuccess }: Props) {
         </Pressable>
       </View>
 
-      <View className="items-center">
+      <View className="items-center mt-6">
         <Pressable onPress={pickAvatar} className="relative">
           <Image
             source={
-              avatarUrl || require("@/assets/images/default_avatar.png")
+              avatarUrl
+                ? { uri: avatarUrl }
+                : require("@/assets/images/default_avatar.png")
             }
             className="h-24 w-24 rounded-full bg-gray-100"
-            contentFit="cover"
           />
-
           <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-indigo-600">
             <Ionicons name="camera" size={17} color="#FFFFFF" />
           </View>
@@ -158,12 +169,28 @@ export default function EditProfileForm({ user, onCancel, onSuccess }: Props) {
         ))}
       </View>
 
-      <ProfileInput
-        label="Ngày sinh"
-        value={dateOfBirth}
-        onChangeText={setDateOfBirth}
-        placeholder="YYYY-MM-DD"
-      />
+      <Text className="mb-2 mt-4 text-sm font-semibold text-gray-700">
+        Ngày sinh
+      </Text>
+
+      <Pressable
+        onPress={() => setShowDatePicker(true)}
+        className="h-14 justify-center rounded-2xl border border-gray-200 bg-gray-50 px-4"
+      >
+        <Text className={dateOfBirth ? "text-gray-900" : "text-gray-400"}>
+          {formatDate(dateOfBirth)}
+        </Text>
+      </Pressable>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={dateOfBirth ? new Date(dateOfBirth) : new Date(2000, 0, 1)}
+          mode="date"
+          display="default"
+          maximumDate={new Date()}
+          onChange={handleDateChange}
+        />
+      )}
 
       <ProfileInput
         label="Số điện thoại"

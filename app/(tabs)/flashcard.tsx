@@ -23,6 +23,7 @@ import {
   FlashcardSetVisibility,
   FlashcardSourceType,
 } from "../../src/features/flashcard/types";
+import { AppCard } from "@/src/components";
 
 const ALL_FILTER = "Tất cả";
 const DUE_FILTER = "Cần ôn";
@@ -135,7 +136,7 @@ const DeckCard = ({ deck, index }: { deck: FlashcardDeck; index: number }) => {
       entering={FadeInUp.delay(index * 90).duration(500)}
       style={styles.deckCardWrapper}
     >
-      <View style={styles.deckCard}>
+      <AppCard>
         <View style={styles.deckHeader}>
           <View style={styles.deckHeaderText}>
             <Text style={styles.deckTitle} numberOfLines={1}>
@@ -214,7 +215,7 @@ const DeckCard = ({ deck, index }: { deck: FlashcardDeck; index: number }) => {
             </LinearGradient>
           </Pressable>
         </View>
-      </View>
+      </AppCard>
     </Animated.View>
   );
 };
@@ -379,7 +380,7 @@ export default function FlashcardTab() {
             </Pressable>
           </View>
 
-          <View style={styles.heroCard}>
+          <AppCard style={styles.heroCard}>
             <View style={styles.heroTop}>
               <View>
                 <Text style={styles.heroLabel}>Hôm nay cần ôn</Text>
@@ -436,7 +437,7 @@ export default function FlashcardTab() {
                 </Text>
               </View>
             )}
-          </View>
+          </AppCard>
 
           <View style={styles.statsRow}>
             <StatItem
@@ -713,16 +714,6 @@ const styles = StyleSheet.create({
 
   heroCard: {
     marginHorizontal: 20,
-    borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(226,232,240,0.72)",
-    padding: 22,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.06,
-    shadowRadius: 28,
-    elevation: 2,
   },
   heroTop: {
     flexDirection: "row",
@@ -927,18 +918,7 @@ const styles = StyleSheet.create({
   deckCardWrapper: {
     marginBottom: 14,
   },
-  deckCard: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(226,232,240,0.68)",
-    padding: 20,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 22,
-    elevation: 2,
-  },
+
   deckHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

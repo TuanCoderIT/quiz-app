@@ -7,7 +7,7 @@ import {
 } from "react-native";
 
 import { Colors, Spacing } from "../../theme";
-import { GlassCard } from "./GlassCard";
+import { AppCard } from "./GlassCard";
 
 type StatCardProps = {
   label: string;
@@ -25,12 +25,12 @@ export const StatCard = ({
   style,
 }: StatCardProps) => {
   return (
-    <GlassCard style={style} contentStyle={styles.content}>
+    <AppCard style={style} contentStyle={styles.content}>
       <View style={[styles.accent, { backgroundColor: accentColor }]} />
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value}>{value}</Text>
       {helper ? <Text style={styles.helper}>{helper}</Text> : null}
-    </GlassCard>
+    </AppCard>
   );
 };
 

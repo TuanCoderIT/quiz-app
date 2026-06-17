@@ -1,4 +1,6 @@
+import { AppCard } from "@/src/components";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
@@ -7,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -62,43 +65,48 @@ const PracticeScreen = () => {
           contentContainerStyle={styles.scrollContent}
         >
           {/* Hero Card */}
-          <View style={styles.heroCard}>
-            <View style={styles.heroHeader}>
-              <View style={styles.heroTextBlock}>
-                <View style={styles.aiBadge}>
-                  <Text style={styles.aiBadgeText}>QUIZ AI</Text>
-                </View>
-                <Text style={styles.heroTitle}>Luyện tập thông minh</Text>
-                <Text style={styles.heroSubtitle}>
-                  Chọn chủ đề, lọc độ khó và bắt đầu bài quiz phù hợp.
-                </Text>
-              </View>
+          <AppCard style={styles.heroCard}>
+            <View style={styles.aiBadge}>
+              <Text style={styles.aiBadgeText}>QUIZ AI</Text>
             </View>
+            <Text style={styles.heroTitle}>Luyện tập thông minh</Text>
+            <Text style={styles.heroSubtitle}>
+              Chọn chủ đề, lọc độ khó và bắt đầu bài quiz phù hợp.
+            </Text>
 
             <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Bài quiz</Text>
-                <Text style={[styles.statValue, { color: "#10B981" }]}>
-                  {exams.length}
-                </Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Chủ đề</Text>
-                <Text style={[styles.statValue, { color: "#7C3AED" }]}>
-                  {categories.length}
-                </Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Đang lọc</Text>
-                <Text style={[styles.statValue, { color: "#F59E0B" }]}>
-                  {filteredExams.length}
-                </Text>
-              </View>
+              <HeroStat label="Bài quiz" value={exams.length} color="#10B981" />
+              <HeroStat
+                label="Chủ đề"
+                value={categories.length}
+                color="#7C3AED"
+              />
+              <HeroStat
+                label="Đang lọc"
+                value={filteredExams.length}
+                color="#F59E0B"
+              />
             </View>
-          </View>
+
+            <TouchableOpacity
+              style={styles.aiCtaButton}
+              onPress={() => router.push("/ai/quiz" as any)}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={["#06B6D4", "#4F46E5"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.aiCtaGradient}
+              >
+                <Ionicons name="sparkles" size={15} color="#FFFFFF" />
+                <Text style={styles.aiCtaText}>Tạo Quiz bằng AI mới ✦</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </AppCard>
 
           {/* Search & Filter */}
-          <View style={styles.searchPanel}>
+          <AppCard style={styles.searchPanel}>
             <View style={styles.searchBar}>
               <Ionicons name="search-outline" size={20} color="#94A3B8" />
               <TextInput
@@ -124,7 +132,7 @@ const PracticeScreen = () => {
                 />
               ))}
             </ScrollView>
-          </View>
+          </AppCard>
 
           {/* Categories */}
           <View style={styles.section}>
@@ -204,6 +212,23 @@ const PracticeScreen = () => {
   );
 };
 
+function HeroStat({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <View style={styles.statCard}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -216,24 +241,6 @@ const styles = StyleSheet.create({
   heroCard: {
     marginHorizontal: 20,
     marginTop: 20,
-    borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderWidth: 1,
-    borderColor: "rgba(226,232,240,0.7)",
-    padding: 22,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.06,
-    shadowRadius: 28,
-    elevation: 2,
-  },
-  heroHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  heroTextBlock: {
-    flex: 1,
   },
   aiBadge: {
     alignSelf: "flex-start",
@@ -269,12 +276,10 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    minHeight: 68,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.72)",
-    borderWidth: 1,
-    borderColor: "rgba(226,232,240,0.6)",
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: "#F8FAFC",
   },
   statLabel: {
     color: "#64748B",
@@ -291,16 +296,6 @@ const styles = StyleSheet.create({
   searchPanel: {
     marginHorizontal: 20,
     marginTop: 16,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.76)",
-    borderWidth: 1,
-    borderColor: "rgba(226,232,240,0.7)",
-    padding: 18,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 22,
-    elevation: 2,
   },
   searchBar: {
     height: 50,
@@ -394,6 +389,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 12,
+  },
+  aiCtaButton: {
+    marginTop: 16,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  aiCtaGradient: {
+    height: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  aiCtaText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
   },
 });
 

@@ -8,15 +8,26 @@ export type ChangePasswordPayload = {
   new_password_confirmation: string;
 };
 
-export async function updateProfile(data: UpdateProfilePayload) {
-  const response = await axiosAPI.post("/profile", data, {
+// export async function updateProfile(data: UpdateProfilePayload) {
+//   const response = await axiosAPI.post("/profile", data, {
+//     headers: {
+//       "Content-Type": "multipart/form-data",
+//     },
+//   });
+
+//   return response.data;
+// }
+export const updateProfile = async (formData: FormData) => {
+  formData.append("_method", "PUT");
+
+  const response = await axiosAPI.post("/profile", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
   });
 
   return response.data;
-}
+};
 
 export async function changePassword(data: ChangePasswordPayload) {
   const response = await axiosAPI.post("/change-password", data);

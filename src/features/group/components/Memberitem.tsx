@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
+import { getImageUrl } from "@/src/utils/image";
 import { GroupMember } from "../group.types";
 
 const ROLE_LABELS: Record<GroupMember["role"], string> = {
@@ -34,6 +35,7 @@ export default function MemberItem({
 }: MemberItemProps) {
   const isSelf = member.user_id === currentUserId;
   const isOwner = member.role === "owner";
+  const avatarUrl = getImageUrl(member.user.avatar);
   const avatarLetter = member.user.name?.[0]?.toUpperCase() ?? "?";
 
   const confirmKick = () => {
@@ -50,9 +52,9 @@ export default function MemberItem({
   return (
     <View className="flex-row items-center justify-between py-3">
       <View className="flex-row items-center gap-3">
-        {member.user.avatar ? (
+        {avatarUrl ? (
           <Image
-            source={{ uri: member.user.avatar }}
+            source={{ uri: avatarUrl }}
             className="h-11 w-11 rounded-full"
           />
         ) : (

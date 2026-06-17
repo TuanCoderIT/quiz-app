@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/src/features/auth/store";
+import { getReverbEcho } from "@/src/features/chat/chat.realtime";
 import { getImageUrl } from "@/src/utils/image";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -26,6 +27,28 @@ import {
 import { GroupDetail, MembershipStatus } from "../group.types";
 import { deletePost, getGroupPosts } from "../post.api";
 import { Post } from "../post.types";
+
+type PostCreatedPayload = {
+  post?: Post;
+  data?: Post;
+};
+
+type CommentCreatedPayload = {
+  post_id?: number;
+  postId?: number;
+  comment?: {
+    post_id?: number;
+    postId?: number;
+  };
+};
+
+function getRealtimePost(payload: PostCreatedPayload): Post | null {
+  return payload.post ?? payload.data ?? null;
+}
+
+function getRealtimeCommentPostId(payload: CommentCreatedPayload) {
+  return payload.post_id ?? payload.postId ?? payload.comment?.post_id ?? payload.comment?.postId;
+}
 
 export default function GroupDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -83,6 +106,56 @@ export default function GroupDetailScreen() {
   useEffect(() => {
     if (group) loadPosts(1, true);
   }, [group, loadPosts]);
+
+  useEffect(() => {
+    if (!group) return;
+
+    const echo = getReverbEcho();
+    const channelName = `group.${group.id}.posts`;
+    const channel = echo.channel(channelName);
+
+    channel.subscribed(() => {
+      console.log("Subscribed:", channelName);
+    });
+
+    channel.error((error: unknown) => {
+      console.log("Subscription error:", channelName, error);
+    });
+
+    channel.listen(".post.created", (payload: PostCreatedPayload) => {
+      console.log("POST CREATED", payload);
+
+      const realtimePost = getRealtimePost(payload);
+      if (!realtimePost) return;
+
+      setPosts((prev) => {
+        const exists = prev.some((post) => post.id === realtimePost.id);
+        if (exists) return prev;
+        return [realtimePost, ...prev];
+      });
+    });
+
+    channel.listen(".comment.created", (payload: CommentCreatedPayload) => {
+      console.log("COMMENT CREATED", payload);
+
+      const postId = getRealtimeCommentPostId(payload);
+      if (!postId) return;
+
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? { ...post, comments_count: post.comments_count + 1 }
+            : post,
+        ),
+      );
+    });
+
+    return () => {
+      channel.stopListening(".post.created");
+      channel.stopListening(".comment.created");
+      echo.leaveChannel(channelName);
+    };
+  }, [group]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

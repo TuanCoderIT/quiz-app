@@ -6,7 +6,7 @@ import {
   sendMessage,
   sendTyping,
 } from "../chat.api";
-import { getChatPusher } from "../chat.realtime";
+import { getReverbEcho } from "../chat.realtime";
 import { ChatMessage, ChatThread, TypingUser } from "../chat.types";
 
 type TypingEvent = {
@@ -84,22 +84,24 @@ export function useGroupChat(groupId?: number, currentUserId?: number) {
   useEffect(() => {
     if (!thread) return;
 
-    const pusher = getChatPusher();
-    if (!pusher) return;
+    const echo = getReverbEcho();
 
     const channelName = `private-chat.thread.${thread.id}`;
-    const channel = pusher.subscribe(channelName);
+    const privateChannelName = `chat.thread.${thread.id}`;
+    const channel = echo.private(privateChannelName);
     const typingTimeouts = typingTimeoutsRef.current;
 
-    channel.bind("pusher:subscription_succeeded", () => {
+    channel.subscribed(() => {
       console.log("Subscribed:", channelName);
     });
 
-    channel.bind("pusher:subscription_error", (error: unknown) => {
+    channel.error((error: unknown) => {
       console.log("Subscription error:", error);
     });
 
-    channel.bind("message.created", (event: { message: ChatMessage }) => {
+    channel.listen(".message.created", (event: { message: ChatMessage }) => {
+      console.log("MESSAGE CREATED", event);
+
       setMessages((prev) => {
         const exists = prev.some((msg) => msg.id === event.message.id);
         if (exists) return prev;
@@ -140,18 +142,18 @@ export function useGroupChat(groupId?: number, currentUserId?: number) {
     };
 
     TYPING_EVENTS.forEach((eventName) => {
-      channel.bind(eventName, handleUserTyping);
+      channel.listen(eventName, handleUserTyping);
     });
 
     return () => {
-      channel.unbind("message.created");
+      channel.stopListening(".message.created");
       TYPING_EVENTS.forEach((eventName) => {
-        channel.unbind(eventName, handleUserTyping);
+        channel.stopListening(eventName);
       });
       typingTimeouts.forEach(clearTimeout);
       typingTimeouts.clear();
       setTypingUsers([]);
-      pusher.unsubscribe(channelName);
+      echo.leave(privateChannelName);
     };
   }, [thread, currentUserId]);
 

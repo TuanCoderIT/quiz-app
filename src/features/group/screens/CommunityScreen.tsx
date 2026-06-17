@@ -1,3 +1,4 @@
+import { getReverbEcho } from "@/src/features/chat/chat.realtime";
 import EmptyState from "@/src/features/group/components/Emptystate";
 import GroupCard from "@/src/features/group/components/Groupcard";
 import LoadingState from "@/src/features/group/components/Loadingstate";
@@ -43,8 +44,12 @@ export default function CommunityScreen() {
     async (pg = 1, q = search, sort = sortBy, reset = false) => {
       try {
         setError(null);
-        if (pg === 1) reset ? setLoading(true) : setRefreshing(true);
-        else setLoadingMore(true);
+        if (pg === 1) {
+          if (reset) setLoading(true);
+          else setRefreshing(true);
+        } else {
+          setLoadingMore(true);
+        }
 
         const res = await getGroups({
           page: pg,
@@ -80,6 +85,39 @@ export default function CommunityScreen() {
   useEffect(() => {
     fetchGroups(1, search, sortBy, true);
     fetchMyGroups();
+  }, []);
+
+  useEffect(() => {
+    const echo = getReverbEcho();
+    const channelName = "posts.global";
+    const channel = echo.channel(channelName);
+
+    channel.subscribed(() => {
+      console.log("Subscribed:", channelName);
+    });
+
+    channel.error((error: unknown) => {
+      console.log("Subscription error:", channelName, error);
+    });
+
+    channel.listen(".test.connection", (event: unknown) => {
+      console.log("TEST REALTIME", event);
+    });
+
+    channel.listen(".post.created", (event: unknown) => {
+      console.log("GLOBAL POST CREATED", event);
+    });
+
+    channel.listen(".comment.created", (event: unknown) => {
+      console.log("GLOBAL COMMENT CREATED", event);
+    });
+
+    return () => {
+      channel.stopListening(".test.connection");
+      channel.stopListening(".post.created");
+      channel.stopListening(".comment.created");
+      echo.leaveChannel(channelName);
+    };
   }, []);
 
   const handleSearch = (text: string) => {
@@ -167,32 +205,53 @@ export default function CommunityScreen() {
 
       {/* Sort options (discover only) */}
       {tab === "discover" && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mb-3"
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.value}
-              onPress={() => handleSort(opt.value)}
-              className={`rounded-full border px-3 py-1.5 ${
-                sortBy === opt.value
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-surface"
-              }`}
-            >
-              <Text
-                className={`text-xs font-medium ${
-                  sortBy === opt.value ? "text-primary" : "text-text-secondary"
-                }`}
-              >
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={{ height: 40, marginBottom: 12 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              gap: 8,
+              alignItems: "flex-start",
+            }}
+          >
+            {SORT_OPTIONS.map((opt) => {
+              const active = sortBy === opt.value;
+
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  onPress={() => handleSort(opt.value)}
+                  activeOpacity={0.8}
+                  style={{
+                    height: 32,
+                    alignSelf: "flex-start",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    paddingHorizontal: 12,
+                    backgroundColor: active ? "rgba(79,70,229,0.1)" : "#FFFFFF",
+                    borderColor: active ? "#4F46E5" : "#E5E7EB",
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "500",
+                      color: active ? "#4F46E5" : "#6B7280",
+                      lineHeight: 16,
+                    }}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
       )}
 
       {/* Content */}

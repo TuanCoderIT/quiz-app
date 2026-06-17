@@ -1,65 +1,116 @@
 import { useAuthStore } from "@/src/features/auth/store";
-import PusherPackage from "pusher-js";
+import Echo from "laravel-echo";
+import PusherPackage from "pusher-js/react-native";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL!;
-const SERVER_URL = API_URL.replace("/api", "");
+type ReverbEcho = Echo<"pusher">;
+type PusherConstructor = new (
+  key: string,
+  options: Record<string, unknown>,
+) => any;
 
-const PusherConstructor =
-  (PusherPackage as any).Pusher ??
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
+const SERVER_URL = API_URL.replace(/\/api\/?$/, "");
+const PusherClient = (
   (PusherPackage as any).default ??
-  PusherPackage;
+  (PusherPackage as any).Pusher ??
+  PusherPackage
+) as PusherConstructor;
 
-let pusherInstance: any = null;
+let echoInstance: ReverbEcho | null = null;
+let echoToken: string | null = null;
 
-export function getChatPusher() {
-  const token = useAuthStore.getState().token;
-
-  if (!token) {
-    console.log("No token found for Reverb");
-    return null;
-  }
-
-  if (pusherInstance) {
-    return pusherInstance;
-  }
-
-  const key = process.env.EXPO_PUBLIC_REVERB_APP_KEY!;
-  const host = process.env.EXPO_PUBLIC_REVERB_HOST!;
-  const port = Number(process.env.EXPO_PUBLIC_REVERB_PORT ?? 8080);
-  const scheme = process.env.EXPO_PUBLIC_REVERB_SCHEME ?? "http";
+function getReverbConfig() {
+  const key = process.env.EXPO_PUBLIC_REVERB_APP_KEY;
+  const host = process.env.EXPO_PUBLIC_REVERB_HOST;
+  const port = Number(process.env.EXPO_PUBLIC_REVERB_PORT || 8080);
+  const scheme = process.env.EXPO_PUBLIC_REVERB_SCHEME || "http";
   const useTLS = scheme === "https";
 
-  console.log("Pusher constructor:", PusherConstructor);
-  console.log("Reverb config:", { key, host, port, scheme });
+  if (!key || !host) {
+    console.warn("Reverb env is missing EXPO_PUBLIC_REVERB_APP_KEY or HOST");
+  }
 
-  pusherInstance = new PusherConstructor(key, {
+  return { key, host, port, scheme, useTLS };
+}
+
+function logConnectionEvents(echo: ReverbEcho) {
+  const pusher = echo.connector.pusher;
+
+  pusher.connection.bind("state_change", (states: unknown) => {
+    console.log("Reverb state change:", states);
+  });
+
+  pusher.connection.bind("connected", () => {
+    console.log("Reverb connected:", pusher.connection.socket_id);
+  });
+
+  pusher.connection.bind("error", (error: unknown) => {
+    console.log("Reverb connection error:", error);
+  });
+}
+
+export function getReverbEcho() {
+  const token = useAuthStore.getState().token;
+
+  if (echoInstance && echoToken === token) {
+    return echoInstance;
+  }
+
+  echoInstance?.disconnect();
+
+  const { key, host, port, scheme, useTLS } = getReverbConfig();
+
+  (globalThis as any).Pusher = PusherClient;
+  if (typeof window !== "undefined") {
+    (window as any).Pusher = PusherClient;
+  }
+
+  console.log("Reverb config:", {
+    key,
+    host,
+    port,
+    scheme,
+    authEndpoint: `${SERVER_URL}/broadcasting/auth`,
+    hasToken: Boolean(token),
+  });
+
+  const echoOptions = {
+    broadcaster: "pusher",
+    Pusher: PusherClient,
+    key,
     wsHost: host,
     wsPort: port,
     wssPort: port,
     forceTLS: useTLS,
+    encrypted: useTLS,
     enabledTransports: useTLS ? ["wss"] : ["ws"],
+    disableStats: true,
     cluster: "mt1",
     authEndpoint: `${SERVER_URL}/broadcasting/auth`,
     auth: {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: token ? `Bearer ${token}` : "",
         Accept: "application/json",
       },
     },
-  });
+  };
 
-  pusherInstance.connection.bind("connected", () => {
-    console.log("Reverb connected");
-  });
+  echoInstance = new Echo(echoOptions as any) as ReverbEcho;
 
-  pusherInstance.connection.bind("error", (error: unknown) => {
-    console.log("Reverb error:", error);
-  });
+  echoToken = token;
+  logConnectionEvents(echoInstance);
 
-  return pusherInstance;
+  return echoInstance;
 }
 
-export function disconnectChatPusher() {
-  pusherInstance?.disconnect?.();
-  pusherInstance = null;
+export function getChatPusher() {
+  return getReverbEcho().connector.pusher;
 }
+
+export function disconnectReverb() {
+  echoInstance?.disconnect();
+  echoInstance = null;
+  echoToken = null;
+}
+
+export const disconnectChatPusher = disconnectReverb;

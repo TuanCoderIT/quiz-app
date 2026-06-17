@@ -11,22 +11,96 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../src/components/common/Button";
 import { Input } from "../../src/components/common/Input";
+import { useAuthStore } from "../../src/features/auth/store";
+
+type RegisterErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  passwordConfirmation?: string;
+  form?: string;
+};
+
+const getRegisterErrorMessage = (error: unknown) => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "response" in error &&
+    error.response &&
+    typeof error.response === "object" &&
+    "data" in error.response
+  ) {
+    const data = error.response.data as {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+
+    const firstFieldError = data.errors
+      ? Object.values(data.errors).flat()[0]
+      : undefined;
+
+    return firstFieldError || data.message || "Không thể đăng ký.";
+  }
+
+  return "Không thể kết nối tới máy chủ. Vui lòng thử lại.";
+};
 
 const RegisterScreen = () => {
   const router = useRouter();
+  const register = useAuthStore((state) => state.register);
+  const isAuthLoading = useAuthStore((state) => state.isLoading);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<RegisterErrors>({});
+
+  const validateForm = () => {
+    const nextErrors: RegisterErrors = {};
+    const normalizedName = fullName.trim();
+    const normalizedEmail = email.trim();
+
+    if (!normalizedName) {
+      nextErrors.name = "Vui lòng nhập họ và tên.";
+    }
+
+    if (!normalizedEmail) {
+      nextErrors.email = "Vui lòng nhập email.";
+    } else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      nextErrors.email = "Email không hợp lệ.";
+    }
+
+    if (!password) {
+      nextErrors.password = "Vui lòng nhập mật khẩu.";
+    } else if (password.length < 8) {
+      nextErrors.password = "Mật khẩu tối thiểu 8 ký tự.";
+    }
+
+    if (!confirmPassword) {
+      nextErrors.passwordConfirmation = "Vui lòng xác nhận mật khẩu.";
+    } else if (confirmPassword !== password) {
+      nextErrors.passwordConfirmation = "Mật khẩu xác nhận không khớp.";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
 
   const handleRegister = async () => {
-    setLoading(true);
-    // Simulate registration
-    setTimeout(() => {
-      setLoading(false);
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await register(fullName.trim(), email.trim(), password);
       router.replace("/(tabs)");
-    }, 1500);
+    } catch (error) {
+      setErrors({ form: getRegisterErrorMessage(error) });
+    }
   };
 
   return (
@@ -60,42 +134,86 @@ const RegisterScreen = () => {
               label="Họ và tên"
               placeholder="Nhập họ và tên của bạn"
               value={fullName}
-              onChangeText={setFullName}
+              onChangeText={(value) => {
+                setFullName(value);
+                setErrors((current) => ({ ...current, name: undefined, form: undefined }));
+              }}
               icon="person-outline"
+              error={errors.name}
+              autoCapitalize="words"
+              returnKeyType="next"
             />
 
             <Input
               label="Email"
               placeholder="name@example.com"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(value) => {
+                setEmail(value);
+                setErrors((current) => ({ ...current, email: undefined, form: undefined }));
+              }}
               icon="mail-outline"
               keyboardType="email-address"
+              error={errors.email}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
             />
 
             <Input
               label="Mật khẩu"
               placeholder="********"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => {
+                setPassword(value);
+                setErrors((current) => ({
+                  ...current,
+                  password: undefined,
+                  passwordConfirmation: undefined,
+                  form: undefined,
+                }));
+              }}
               icon="lock-closed-outline"
               secureTextEntry
+              error={errors.password}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
             />
 
             <Input
               label="Xác nhận mật khẩu"
               placeholder="********"
               value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              onChangeText={(value) => {
+                setConfirmPassword(value);
+                setErrors((current) => ({
+                  ...current,
+                  passwordConfirmation: undefined,
+                  form: undefined,
+                }));
+              }}
               icon="shield-checkmark-outline"
               secureTextEntry
+              error={errors.passwordConfirmation}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
             />
+
+            {errors.form ? (
+              <View className="mb-3 rounded-xl bg-red-50 px-4 py-3">
+                <Text className="text-sm font-semibold leading-5 text-error">
+                  {errors.form}
+                </Text>
+              </View>
+            ) : null}
 
             <View className="mt-4">
               <Button
                 title="Đăng ký"
                 onPress={handleRegister}
-                loading={loading}
+                loading={isAuthLoading}
               />
             </View>
           </View>

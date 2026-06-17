@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppBackground } from "../../src/components/common/AppBackground";
 import { useAuthStore } from "../../src/features/auth/store";
+import { NotificationBadge } from "@/src/features/notification/components/NotificationBadge";
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -49,17 +50,24 @@ const HomeScreen = () => {
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/profile")}
-              style={styles.avatar}
-              activeOpacity={0.8}
-            >
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-              ) : (
-                <Ionicons name="person" size={22} color="#4F46E5" />
-              )}
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <NotificationBadge />
+
+              <TouchableOpacity
+                onPress={() => router.push("/(tabs)/profile")}
+                style={styles.avatar}
+                activeOpacity={0.8}
+              >
+                {avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <Ionicons name="person" size={22} color="#4F46E5" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Continue Learning */}
@@ -145,7 +153,9 @@ const HomeScreen = () => {
               <View style={styles.goalHeader}>
                 <View>
                   <Text style={styles.goalTitle}>30/50 XP</Text>
-                  <Text style={styles.goalSub}>Bạn sắp hoàn thành mục tiêu ngày</Text>
+                  <Text style={styles.goalSub}>
+                    Bạn sắp hoàn thành mục tiêu ngày
+                  </Text>
                 </View>
 
                 <View style={styles.goalIcon}>
@@ -200,7 +210,11 @@ const QuickAction = ({
   onPress: () => void;
 }) => {
   return (
-    <TouchableOpacity style={styles.quickAction} activeOpacity={0.85} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.quickAction}
+      activeOpacity={0.85}
+      onPress={onPress}
+    >
       <View style={[styles.quickIcon, { backgroundColor: `${color}15` }]}>
         <Ionicons name={icon} size={22} color={color} />
       </View>
@@ -218,7 +232,9 @@ const TodoItem = ({ done, label }: { done: boolean; label: string }) => {
         size={18}
         color={done ? "#10B981" : "#CBD5E1"}
       />
-      <Text style={[styles.todoText, done && styles.todoTextDone]}>{label}</Text>
+      <Text style={[styles.todoText, done && styles.todoTextDone]}>
+        {label}
+      </Text>
     </View>
   );
 };
@@ -256,6 +272,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 18,
     marginBottom: 22,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   headerText: {
     flex: 1,

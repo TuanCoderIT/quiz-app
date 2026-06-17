@@ -1,3 +1,4 @@
+import { AppCard } from '@/src/components';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -35,7 +36,7 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
   const difficultyStyles = getDifficultyStyles();
 
   return (
-    <View style={styles.card}>
+    <AppCard style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.title}>{title}</Text>
@@ -69,23 +70,13 @@ export const PracticeQuizCard: React.FC<PracticeQuizCardProps> = ({
           <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </AppCard>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.68)',
-    padding: 20,
     marginBottom: 14,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 22,
-    elevation: 2,
   },
   header: {
     flexDirection: 'row',

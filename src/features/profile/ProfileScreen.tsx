@@ -1,18 +1,19 @@
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView } from "react-native";
 
-import ProfileHeaderCard from "./components/ProfileHeaderCard";
-import PersonalInfoCard from "./components/PersonalInfoCard";
-import EditProfileForm from "./components/EditProfileForm";
-import SecurityCard from "./components/SecurityCard";
 import ChangePasswordForm from "./components/ChangePasswordForm";
+import PersonalInfoCard from "./components/PersonalInfoCard";
+import ProfileHeaderCard from "./components/ProfileHeaderCard";
+import SecurityCard from "./components/SecurityCard";
 
 import { useAuthStore } from "@/src/features/auth/store";
 
 export default function ProfileScreen() {
-  const { user, refreshUser } = useAuthStore();
+  const router = useRouter();
+  const { user } = useAuthStore();
 
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [showFullInfo, setShowFullInfo] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   return (
@@ -24,23 +25,14 @@ export default function ProfileScreen() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <ProfileHeaderCard user={user} />
+      <ProfileHeaderCard
+        user={user}
+        showFullInfo={showFullInfo}
+        onToggleFullInfo={() => setShowFullInfo((prev) => !prev)}
+        onEdit={() => router.push("/profile/edit")}
+      />
 
-      {isEditingProfile ? (
-        <EditProfileForm
-          user={user}
-          onCancel={() => setIsEditingProfile(false)}
-          onSuccess={async () => {
-            await refreshUser?.();
-            setIsEditingProfile(false);
-          }}
-        />
-      ) : (
-        <PersonalInfoCard
-          user={user}
-          onEdit={() => setIsEditingProfile(true)}
-        />
-      )}
+      {showFullInfo ? <PersonalInfoCard user={user} /> : null}
 
       {isChangingPassword ? (
         <ChangePasswordForm

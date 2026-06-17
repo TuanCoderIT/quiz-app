@@ -1,7 +1,8 @@
-import { create } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "axios";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000/api";
+const BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || "http://api.thaytruyen.id.vn/api";
 console.log("DEBUG: Base URL is set to:", BASE_URL);
 
 export const axiosAPI = create({
@@ -9,8 +10,8 @@ export const axiosAPI = create({
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
-    "Accept": "application/json",
-  }
+    Accept: "application/json",
+  },
 });
 
 // Request Interceptor
@@ -27,10 +28,12 @@ axiosAPI.interceptors.request.use(
     } catch (error) {
       console.error("Lỗi lấy token từ storage:", error);
     }
-    console.log(`DEBUG: Making ${config.method?.toUpperCase()} request to ${config.url}`);
+    console.log(
+      `DEBUG: Making ${config.method?.toUpperCase()} request to ${config.url}`,
+    );
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response Interceptor for debugging
@@ -54,5 +57,5 @@ axiosAPI.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );

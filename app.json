@@ -40,6 +40,22 @@
           }
         }
       ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Lexend-Thin.ttf",
+            "./assets/fonts/Lexend-ExtraLight.ttf",
+            "./assets/fonts/Lexend-Light.ttf",
+            "./assets/fonts/Lexend-Regular.ttf",
+            "./assets/fonts/Lexend-Medium.ttf",
+            "./assets/fonts/Lexend-SemiBold.ttf",
+            "./assets/fonts/Lexend-Bold.ttf",
+            "./assets/fonts/Lexend-ExtraBold.ttf",
+            "./assets/fonts/Lexend-Black.ttf"
+          ]
+        }
+      ],
       "@react-native-community/datetimepicker"
     ],
     "experiments": {

@@ -11,21 +11,25 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { Input } from "../../../components/common/Input";
 import { ScreenContainer } from "../../../components/common/ScreenContainer";
 import { Colors } from "../../../theme";
 import { Category } from "../../../types/category";
-import { AIQuizFormErrors, AIQuizFormState, QuizDifficulty } from "../ai.types";
+import {
+  AIFlashcardFormErrors,
+  AIFlashcardFormState,
+} from "../hooks/useAIFlashcardForm";
 
-interface ConfigureQuizScreenProps {
-  form: AIQuizFormState;
-  errors: AIQuizFormErrors;
+interface AIFlashcardCreateScreenProps {
+  form: AIFlashcardFormState;
+  errors: AIFlashcardFormErrors;
   categories: Category[];
   isCategoriesLoading: boolean;
   isGenerating: boolean;
-  updateField: <K extends keyof AIQuizFormState>(
+  updateField: <K extends keyof AIFlashcardFormState>(
     field: K,
-    value: AIQuizFormState[K],
+    value: AIFlashcardFormState[K],
   ) => void;
   pickDocument: () => Promise<void>;
   removeFile: () => void;
@@ -33,7 +37,11 @@ interface ConfigureQuizScreenProps {
   onBack: () => void;
 }
 
-export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
+const cardPresets = [5, 10, 15, 20, 30];
+
+export const AIFlashcardCreateScreen: React.FC<
+  AIFlashcardCreateScreenProps
+> = ({
   form,
   errors,
   categories,
@@ -47,29 +55,17 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
 }) => {
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
-  // Get selected category name
   const getSelectedCategoryName = () => {
-    if (form.category_id === null) return "Chọn danh mục...";
+    if (form.category_id === null) {
+      return "Không chọn danh mục";
+    }
+
     const matched = categories.find((c) => Number(c.id) === form.category_id);
-    return matched ? matched.name : "Chọn danh mục...";
+    return matched ? matched.name : "Không chọn danh mục";
   };
-
-  const difficulties: QuizDifficulty[] = [
-    "Beginner",
-    "Intermediate",
-    "Advanced",
-  ];
-  const difficultyLabels: Record<QuizDifficulty, string> = {
-    Beginner: "Cơ bản",
-    Intermediate: "Trung bình",
-    Advanced: "Nâng cao",
-  };
-
-  const questionPresets = [5, 10, 15, 20];
 
   return (
     <ScreenContainer scroll contentContainerStyle={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -82,32 +78,30 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
           <View style={styles.aiBadge}>
             <Text style={styles.aiBadgeText}>AI POWERED</Text>
           </View>
-          <Text style={styles.title}>Tạo Quiz bằng AI</Text>
+          <Text style={styles.title}>Tạo Flashcard bằng AI</Text>
         </View>
         <View style={styles.backBtnPlaceholder} />
       </View>
 
-      {/* Basic Settings Card */}
       <AppCard style={styles.card}>
-        <Text style={styles.cardTitle}>1. Cấu hình Quiz chung</Text>
+        <Text style={styles.cardTitle}>1. Cấu hình bộ thẻ</Text>
 
         <Input
-          label="Tiêu đề Quiz"
-          placeholder="Nhập tiêu đề cho bài kiểm tra của bạn..."
+          label="Tiêu đề bộ thẻ"
+          placeholder="Nhập tiêu đề cho bộ flashcard..."
           value={form.title}
           onChangeText={(text) => updateField("title", text)}
           error={errors.title}
         />
 
         <Input
-          label="Mô tả Quiz (Không bắt buộc)"
-          placeholder="Giới thiệu khái quát về nội dung bài kiểm tra..."
+          label="Mô tả (Không bắt buộc)"
+          placeholder="Ghi chú ngắn về nội dung bộ thẻ..."
           value={form.description}
           onChangeText={(text) => updateField("description", text)}
           error={errors.description}
         />
 
-        {/* Custom Category Selection */}
         <View style={styles.fieldWrapper}>
           <Text style={styles.fieldLabel}>Danh mục chủ đề</Text>
           <Pressable
@@ -133,76 +127,52 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
           ) : null}
         </View>
 
-        {/* Difficulty Selection */}
         <View style={styles.fieldWrapper}>
-          <Text style={styles.fieldLabel}>Mức độ khó</Text>
-          <View style={styles.difficultyGroup}>
-            {difficulties.map((diff) => {
-              const active = form.difficulty === diff;
+          <Text style={styles.fieldLabel}>Chế độ hiển thị</Text>
+          <View style={styles.visibilityGroup}>
+            {(["private", "public"] as const).map((visibility) => {
+              const active = form.visibility === visibility;
+
               return (
                 <TouchableOpacity
-                  key={diff}
-                  onPress={() => updateField("difficulty", diff)}
+                  key={visibility}
+                  onPress={() => updateField("visibility", visibility)}
                   style={[
-                    styles.difficultyTab,
-                    active && styles.difficultyTabActive,
+                    styles.visibilityTab,
+                    active && styles.visibilityTabActive,
                   ]}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
                 >
+                  <Ionicons
+                    name={
+                      visibility === "private"
+                        ? "lock-closed-outline"
+                        : "earth-outline"
+                    }
+                    size={17}
+                    color={active ? "#4F46E5" : "#64748B"}
+                  />
                   <Text
                     style={[
-                      styles.difficultyTabText,
-                      active && styles.difficultyTabTextActive,
+                      styles.visibilityText,
+                      active && styles.visibilityTextActive,
                     ]}
                   >
-                    {difficultyLabels[diff]}
+                    {visibility === "private" ? "Riêng tư" : "Công khai"}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
-
-        {/* Numeric rows */}
-        <View style={styles.row}>
-          <View style={styles.col}>
-            <Input
-              label="Thời gian (p)"
-              placeholder="15"
-              value={form.duration}
-              onChangeText={(text) => updateField("duration", text)}
-              error={errors.duration}
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.col}>
-            <Input
-              label="Điểm đạt (%)"
-              placeholder="70"
-              value={form.passing_score}
-              onChangeText={(text) => updateField("passing_score", text)}
-              error={errors.passing_score}
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.col}>
-            <Input
-              label="Số lượt làm"
-              placeholder="3"
-              value={form.max_attempts}
-              onChangeText={(text) => updateField("max_attempts", text)}
-              error={errors.max_attempts}
-              keyboardType="numeric"
-            />
-          </View>
+          {errors.visibility ? (
+            <Text style={styles.errorText}>{errors.visibility}</Text>
+          ) : null}
         </View>
       </AppCard>
 
-      {/* Generation Method Card */}
       <AppCard style={styles.card}>
-        <Text style={styles.cardTitle}>2. Phương thức tạo câu hỏi</Text>
+        <Text style={styles.cardTitle}>2. Nguồn tạo flashcard</Text>
 
-        {/* Mode Switch Tabs */}
         <View style={styles.modeTabs}>
           <TouchableOpacity
             style={[
@@ -223,7 +193,7 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
                 form.mode === "prompt" && styles.modeTabTextActive,
               ]}
             >
-              Nhập yêu cầu
+              From Prompt
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -245,31 +215,29 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
                 form.mode === "file" && styles.modeTabTextActive,
               ]}
             >
-              Tải tài liệu
+              From File
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Prompt Mode Fields */}
         {form.mode === "prompt" ? (
           <View style={styles.methodContent}>
-            <Text style={styles.fieldLabel}>Mô tả yêu cầu chi tiết</Text>
+            <Text style={styles.fieldLabel}>Nội dung yêu cầu</Text>
             <TextInput
               value={form.prompt}
               onChangeText={(text) => updateField("prompt", text)}
-              placeholder="Tạo 1 bài kiểm tra về..."
+              placeholder="Tạo bộ thẻ ghi nhớ về..."
               placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={8}
               textAlignVertical="top"
-              style={styles.textarea}
+              style={[styles.textarea, !!errors.prompt && styles.textareaError]}
             />
-            <Text style={styles.charCount}>
-              {form.prompt.length}/2000 ký tự (Tối thiểu 10 ký tự)
-            </Text>
+            {errors.prompt ? (
+              <Text style={styles.errorText}>{errors.prompt}</Text>
+            ) : null}
           </View>
         ) : (
-          /* File Mode Fields */
           <View style={styles.methodContent}>
             <Text style={styles.fieldLabel}>Tải file học liệu lên</Text>
             {form.file ? (
@@ -288,6 +256,7 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
                 <TouchableOpacity
                   style={styles.removeFileBtn}
                   onPress={removeFile}
+                  activeOpacity={0.75}
                 >
                   <Ionicons name="trash-outline" size={20} color="#EF4444" />
                 </TouchableOpacity>
@@ -307,7 +276,7 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
                 />
                 <Text style={styles.uploadTitle}>Chọn file từ điện thoại</Text>
                 <Text style={styles.uploadSubtitle}>
-                  Hỗ trợ định dạng .pdf, .doc, .docx, .txt (Tối đa 10MB)
+                  Hỗ trợ .pdf, .doc, .docx, .txt
                 </Text>
               </Pressable>
             )}
@@ -317,34 +286,30 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
           </View>
         )}
 
-        {/* Number of Questions */}
         <View style={styles.fieldWrapper}>
-          <Text style={styles.fieldLabel}>Số lượng câu hỏi</Text>
-
-          <View style={styles.questionsControl}>
+          <Text style={styles.fieldLabel}>Số lượng thẻ</Text>
+          <View style={styles.cardsControl}>
             <View style={styles.stepperRow}>
               <TouchableOpacity
                 style={styles.stepBtn}
                 onPress={() =>
                   updateField(
-                    "number_of_questions",
-                    Math.max(1, form.number_of_questions - 1),
+                    "number_of_cards",
+                    Math.max(1, form.number_of_cards - 1),
                   )
                 }
               >
                 <Ionicons name="remove" size={18} color="#0F172A" />
               </TouchableOpacity>
 
-              <Text style={styles.questionNumText}>
-                {form.number_of_questions}
-              </Text>
+              <Text style={styles.cardNumText}>{form.number_of_cards}</Text>
 
               <TouchableOpacity
                 style={styles.stepBtn}
                 onPress={() =>
                   updateField(
-                    "number_of_questions",
-                    Math.min(20, form.number_of_questions + 1),
+                    "number_of_cards",
+                    Math.min(30, form.number_of_cards + 1),
                   )
                 }
               >
@@ -353,20 +318,20 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
             </View>
 
             <View style={styles.presets}>
-              {questionPresets.map((preset) => (
+              {cardPresets.map((preset) => (
                 <TouchableOpacity
                   key={preset}
-                  onPress={() => updateField("number_of_questions", preset)}
+                  onPress={() => updateField("number_of_cards", preset)}
                   style={[
                     styles.presetBtn,
-                    form.number_of_questions === preset &&
+                    form.number_of_cards === preset &&
                       styles.presetBtnActive,
                   ]}
                 >
                   <Text
                     style={[
                       styles.presetText,
-                      form.number_of_questions === preset &&
+                      form.number_of_cards === preset &&
                         styles.presetTextActive,
                     ]}
                   >
@@ -376,10 +341,12 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
               ))}
             </View>
           </View>
+          {errors.number_of_cards ? (
+            <Text style={styles.errorText}>{errors.number_of_cards}</Text>
+          ) : null}
         </View>
       </AppCard>
 
-      {/* General Submission Error */}
       {errors.general ? (
         <View style={styles.generalErrorBox}>
           <Ionicons name="alert-circle" size={20} color="#EF4444" />
@@ -387,18 +354,20 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
         </View>
       ) : null}
 
-      {/* Submit Action */}
       <TouchableOpacity
-        style={styles.submitBtn}
+        style={[styles.submitBtn, isGenerating && styles.submitBtnDisabled]}
         disabled={isGenerating}
         onPress={onSubmit}
         activeOpacity={0.85}
       >
         <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-        <Text style={styles.submitBtnText}>Tạo Quiz bằng AI</Text>
+        <Text style={styles.submitBtnText}>
+          {isGenerating
+            ? "AI đang tạo flashcard..."
+            : "Tạo Flashcard bằng AI"}
+        </Text>
       </TouchableOpacity>
 
-      {/* Category Dropdown List Modal */}
       <Modal
         visible={categoryModalVisible}
         transparent
@@ -411,11 +380,34 @@ export const ConfigureQuizScreen: React.FC<ConfigureQuizScreenProps> = ({
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Chọn Danh mục chủ đề</Text>
+              <Text style={styles.modalTitle}>Chọn danh mục chủ đề</Text>
               <TouchableOpacity onPress={() => setCategoryModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#0F172A" />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={[
+                styles.modalOption,
+                form.category_id === null && styles.modalOptionActive,
+              ]}
+              onPress={() => {
+                updateField("category_id", null);
+                setCategoryModalVisible(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.modalOptionText,
+                  form.category_id === null && styles.modalOptionTextActive,
+                ]}
+              >
+                Không chọn danh mục
+              </Text>
+              {form.category_id === null ? (
+                <Ionicons name="checkmark" size={20} color="#4F46E5" />
+              ) : null}
+            </TouchableOpacity>
 
             {isCategoriesLoading ? (
               <Text style={styles.loadingCats}>Đang tải danh sách...</Text>
@@ -503,22 +495,11 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
   },
-  textarea: {
-    minHeight: 160,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: "#0F172A",
-    backgroundColor: "#FFFFFF",
-    lineHeight: 22,
-  },
   title: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: "800",
     color: "#0F172A",
+    textAlign: "center",
   },
   card: {
     marginBottom: 20,
@@ -565,18 +546,11 @@ const styles = StyleSheet.create({
   selectPlaceholder: {
     color: Colors.textMuted,
   },
-  errorText: {
-    color: Colors.error,
-    fontSize: 12,
-    fontWeight: "600",
-    marginTop: 6,
-    marginLeft: 6,
-  },
-  difficultyGroup: {
+  visibilityGroup: {
     flexDirection: "row",
     gap: 8,
   },
-  difficultyTab: {
+  visibilityTab: {
     flex: 1,
     height: 44,
     borderRadius: 12,
@@ -585,25 +559,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "transparent",
+    flexDirection: "row",
+    gap: 6,
   },
-  difficultyTabActive: {
+  visibilityTabActive: {
     backgroundColor: "#EEF2FF",
     borderColor: "#4F46E5",
   },
-  difficultyTabText: {
+  visibilityText: {
     fontSize: 14,
     fontWeight: "700",
     color: "#64748B",
   },
-  difficultyTabTextActive: {
+  visibilityTextActive: {
     color: "#4F46E5",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  col: {
-    flex: 1,
   },
   modeTabs: {
     flexDirection: "row",
@@ -640,11 +609,20 @@ const styles = StyleSheet.create({
   methodContent: {
     marginBottom: 16,
   },
-  charCount: {
-    fontSize: 11,
-    color: "#94A3B8",
-    textAlign: "right",
-    marginRight: 4,
+  textarea: {
+    minHeight: 160,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#0F172A",
+    backgroundColor: "#FFFFFF",
+    lineHeight: 22,
+  },
+  textareaError: {
+    borderColor: "rgba(239,68,68,0.48)",
   },
   uploadArea: {
     height: 140,
@@ -704,20 +682,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  questionsControl: {
+  cardsControl: {
     gap: 12,
   },
-
   stepperRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-  },
-
-  presets: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
   },
   stepBtn: {
     width: 44,
@@ -727,14 +698,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  questionNumText: {
+  cardNumText: {
     width: 48,
     textAlign: "center",
     fontSize: 18,
     fontWeight: "800",
     color: "#0F172A",
   },
-
+  presets: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   presetBtn: {
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -751,6 +726,13 @@ const styles = StyleSheet.create({
   },
   presetTextActive: {
     color: "#FFFFFF",
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 6,
+    marginLeft: 6,
   },
   generalErrorBox: {
     flexDirection: "row",
@@ -770,23 +752,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   submitBtn: {
-    height: 56,
+    minHeight: 56,
     borderRadius: 18,
     backgroundColor: "#4F46E5",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    paddingHorizontal: 16,
     shadowColor: "#4F46E5",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 3,
   },
+  submitBtnDisabled: {
+    opacity: 0.78,
+  },
   submitBtnText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
+    textAlign: "center",
   },
   modalOverlay: {
     flex: 1,

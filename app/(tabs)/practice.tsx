@@ -69,7 +69,7 @@ const PracticeScreen = () => {
             <View style={styles.aiBadge}>
               <Text style={styles.aiBadgeText}>QUIZ AI</Text>
             </View>
-            <Text style={styles.heroTitle}>Luyện tập thông minh</Text>
+            <Text style={styles.heroTitle} className="font-medium">Luyện tập thông minh</Text>
             <Text style={styles.heroSubtitle}>
               Chọn chủ đề, lọc độ khó và bắt đầu bài quiz phù hợp.
             </Text>
@@ -259,8 +259,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: "#0F172A",
-    fontSize: 26,
-    fontWeight: "800",
+    fontSize: 24,
     lineHeight: 32,
   },
   heroSubtitle: {

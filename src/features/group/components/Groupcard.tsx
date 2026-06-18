@@ -18,10 +18,10 @@ export default function GroupCard({ group, onPress }: GroupCardProps) {
       onPress={onPress}
       activeOpacity={0.85}
       style={styles.card}
-      className="mb-3 overflow-hidden rounded-2xl bg-surface"
+      className="mb-3 overflow-hidden rounded-xl bg-surface"
     >
       {/* Cover Image */}
-      <View className="h-28 w-full bg-primary/10">
+      <View className="h-32 w-full bg-primary/10">
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}

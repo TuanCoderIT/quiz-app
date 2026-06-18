@@ -1,6 +1,8 @@
 import { axiosAPI } from "../../services/api/client";
 import { WithUnlockedAchievements } from "../gamification/types";
 import {
+    AIFlashcardGenerationResponse,
+    AIFlashcardFromPromptPayload,
     CreateFlashcardCardPayload,
     CreateFlashcardSetPayload,
     Flashcard,
@@ -377,6 +379,53 @@ export const createManualFlashcardSet = async (
   await Promise.all(cards.map((card) => createFlashcardCard(deck.id, card)));
 
   return getFlashcardSetById(deck.id);
+};
+
+export const generateFlashcardSetFromPrompt = async (
+  payload: AIFlashcardFromPromptPayload,
+): Promise<AIFlashcardGenerationResponse> => {
+  console.log("AI flashcard prompt payload:", JSON.stringify(payload, null, 2));
+
+  const response = await axiosAPI.post<ApiResponse<FlashcardDeck>>(
+    "/flashcard-sets/ai-generate-from-prompt",
+    payload,
+  );
+  const message =
+    isRecord(response.data) && typeof response.data.message === "string"
+      ? response.data.message
+      : "Tạo bộ thẻ bằng AI thành công.";
+
+  return {
+    success: isRecord(response.data) ? response.data.success as boolean : true,
+    message,
+    data: normalizeDeck(unwrapData(response.data)),
+  };
+};
+
+export const generateFlashcardSetFromFile = async (
+  formData: FormData,
+): Promise<AIFlashcardGenerationResponse> => {
+  console.log("AI flashcard file form:", formData);
+
+  const response = await axiosAPI.post<ApiResponse<FlashcardDeck>>(
+    "/flashcard-sets/ai-generate-from-file",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  const message =
+    isRecord(response.data) && typeof response.data.message === "string"
+      ? response.data.message
+      : "Tạo bộ thẻ bằng AI thành công.";
+
+  return {
+    success: isRecord(response.data) ? response.data.success as boolean : true,
+    message,
+    data: normalizeDeck(unwrapData(response.data)),
+  };
 };
 
 export const generateWrongAnswerFlashcards = async (

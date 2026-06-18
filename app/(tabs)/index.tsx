@@ -1,10 +1,9 @@
 import { AppCard } from "@/src/components/common/GlassCard";
-import { getImageUrl } from "@/src/utils/image";
+import { NotificationBadge } from "@/src/features/notification/components/NotificationBadge";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,12 +13,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppBackground } from "../../src/components/common/AppBackground";
 import { useAuthStore } from "../../src/features/auth/store";
-import { NotificationBadge } from "@/src/features/notification/components/NotificationBadge";
+import { useFlashcardStore } from "../../src/features/flashcard/store";
+import { useGamificationStore } from "../../src/features/gamification/store";
 
 const HomeScreen = () => {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const avatarUrl = getImageUrl(user?.avatar);
+  const decks = useFlashcardStore((state) => state.decks);
+  const fetchDecks = useFlashcardStore((state) => state.fetchDecks);
+  const gamificationSummary = useGamificationStore((state) => state.summary);
+  const fetchSummary = useGamificationStore((state) => state.fetchSummary);
 
   const formatNumber = (value?: number) =>
     new Intl.NumberFormat("vi-VN", { notation: "compact" }).format(
@@ -33,6 +36,60 @@ const HomeScreen = () => {
     return "Chào buổi tối,";
   };
 
+  useEffect(() => {
+    void fetchDecks();
+    void fetchSummary();
+  }, [fetchDecks, fetchSummary]);
+
+  const homeStats = useMemo(() => {
+    const totalCards = decks.reduce((sum, deck) => sum + deck.cardCount, 0);
+    const dueToday = decks.reduce((sum, deck) => sum + deck.dueCount, 0);
+    const featuredDeck = [...decks].sort((a, b) => b.dueCount - a.dueCount)[0];
+    const streak =
+      gamificationSummary?.current_streak ?? user?.current_streak ?? 0;
+    const xp = gamificationSummary?.xp ?? user?.xp ?? 0;
+    const level = gamificationSummary?.level ?? Math.max(1, Math.floor(xp / 100) + 1);
+
+    return {
+      totalCards,
+      dueToday,
+      featuredDeck,
+      streak,
+      xp,
+      level,
+    };
+  }, [decks, gamificationSummary, user?.current_streak, user?.xp]);
+
+  const goals = useMemo(
+    () => [
+      {
+        done: homeStats.streak > 0,
+        label: "Giữ streak học tập",
+      },
+      {
+        done: homeStats.totalCards > 0 && homeStats.dueToday === 0,
+        label:
+          homeStats.dueToday > 0
+            ? `Ôn ${homeStats.dueToday} thẻ đến hạn`
+            : "Ôn hết thẻ đến hạn",
+      },
+      {
+        done: decks.length > 0,
+        label: "Có ít nhất 1 bộ flashcard",
+      },
+    ],
+    [decks.length, homeStats.dueToday, homeStats.streak, homeStats.totalCards],
+  );
+  const completedGoals = goals.filter((goal) => goal.done).length;
+  const goalProgress = Math.round((completedGoals / goals.length) * 100);
+  const primaryLearningRoute =
+    homeStats.dueToday > 0 && homeStats.featuredDeck
+      ? {
+          pathname: "/flashcard/study" as const,
+          params: { id: homeStats.featuredDeck.id },
+        }
+      : "/(tabs)/practice";
+
   return (
     <AppBackground>
       <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -43,72 +100,81 @@ const HomeScreen = () => {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.userName}>{user?.name || "Bạn"} 👋</Text>
-              <Text style={styles.headerSub}>
+              <Text style={styles.greeting} className="font-medium">{getGreeting()}</Text>
+              <Text style={styles.userName} className="font-semibold">{user?.name || "Bạn"}</Text>
+              <Text style={styles.headerSub} className="font-medium">
                 Học 10 phút hôm nay để giữ nhịp nhé
               </Text>
             </View>
 
             <View style={styles.headerActions}>
               <NotificationBadge />
-
-              <TouchableOpacity
-                onPress={() => router.push("/(tabs)/profile")}
-                style={styles.avatar}
-                activeOpacity={0.8}
-              >
-                {avatarUrl ? (
-                  <Image
-                    source={{ uri: avatarUrl }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <Ionicons name="person" size={22} color="#4F46E5" />
-                )}
-              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Continue Learning */}
+          {/* Today Focus */}
           <AppCard style={styles.heroCard}>
             <View style={styles.heroTop}>
               <View style={styles.heroBadge}>
-                <Ionicons name="play-circle" size={14} color="#4F46E5" />
-                <Text style={styles.heroBadgeText}>TIẾP TỤC HỌC</Text>
+                <Ionicons name="calendar-clear" size={14} color="#4F46E5" />
+                <Text style={styles.heroBadgeText} className="font-semibold">ÔN TẬP HÔM NAY</Text>
               </View>
 
               <View style={styles.streakPill}>
                 <Ionicons name="flame" size={14} color="#F59E0B" />
-                <Text style={styles.streakText}>
-                  {formatNumber(user?.current_streak)} ngày
+                <Text style={styles.streakText} className="font-medium">
+                  {formatNumber(homeStats.streak)} ngày
                 </Text>
               </View>
             </View>
 
-            <Text style={styles.heroTitle}>React Native cơ bản</Text>
-            <Text style={styles.heroMeta}>Đã hoàn thành 12/20 câu hỏi</Text>
+            <Text style={styles.heroTitle} className="font-medium">
+              {homeStats.dueToday > 0
+                ? `${homeStats.dueToday} thẻ cần ôn`
+                : "Bạn đang giữ nhịp tốt"}
+            </Text>
+            <Text style={styles.heroMeta}>
+              {homeStats.featuredDeck
+                ? `Ưu tiên: ${homeStats.featuredDeck.title}`
+                : "Bắt đầu bằng một bài quiz ngắn hoặc tạo bộ thẻ mới."}
+            </Text>
 
-            <View style={styles.progressRow}>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: "60%" }]} />
+            <View style={styles.heroInsightRow}>
+              <View style={styles.heroInsight}>
+                <Text style={styles.heroInsightValue}className="font-medium">
+                  {formatNumber(homeStats.totalCards)}
+                </Text>
+                <Text style={styles.heroInsightLabel} className="font-medium">Tổng thẻ</Text>
               </View>
-              <Text style={styles.progressText}>60%</Text>
+              <View style={styles.heroInsight}>
+                <Text style={styles.heroInsightValue}className="font-medium">
+                  {formatNumber(homeStats.xp)}
+                </Text>
+                <Text style={styles.heroInsightLabel} className="font-medium">XP tích lũy</Text>
+              </View>
+              <View style={styles.heroInsight}>
+                <Text style={styles.heroInsightValue}className="font-medium">
+                  {homeStats.level}
+                </Text>
+                <Text style={styles.heroInsightLabel} className="font-medium">Cấp độ</Text>
+              </View>
             </View>
 
             <TouchableOpacity
               style={styles.heroButton}
               activeOpacity={0.85}
-              onPress={() => router.push("/(tabs)/practice")}
+              onPress={() => router.push(primaryLearningRoute)}
             >
-              <Text style={styles.heroButtonText}>Tiếp tục học</Text>
+              <Text style={styles.heroButtonText} className="font-medium">
+                {homeStats.dueToday > 0 ? "Ôn flashcard ngay" : "Làm quiz ngắn"}
+              </Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </AppCard>
 
           {/* Quick Actions */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Bạn muốn học gì hôm nay?</Text>
+            <Text style={styles.sectionTitle} className="font-medium">Bạn muốn học gì hôm nay?</Text>
 
             <View style={styles.quickGrid}>
               <QuickAction
@@ -147,37 +213,53 @@ const HomeScreen = () => {
 
           {/* Daily Goal */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Mục tiêu hôm nay</Text>
+            <Text style={styles.sectionTitle} className="font-medium">Mục tiêu hôm nay</Text>
 
             <AppCard style={styles.goalCard}>
               <View style={styles.goalHeader}>
                 <View>
-                  <Text style={styles.goalTitle}>30/50 XP</Text>
+                  <Text style={styles.goalTitle}>
+                    {completedGoals}/{goals.length} mục tiêu
+                  </Text>
                   <Text style={styles.goalSub}>
-                    Bạn sắp hoàn thành mục tiêu ngày
+                    Hoàn thành vài việc nhỏ để giữ nhịp
                   </Text>
                 </View>
 
                 <View style={styles.goalIcon}>
-                  <Ionicons name="trophy" size={22} color="#F59E0B" />
+                  <Ionicons name="trophy" size={20} color="#F59E0B" />
                 </View>
               </View>
 
               <View style={styles.goalProgressTrack}>
-                <View style={[styles.goalProgressFill, { width: "60%" }]} />
+                <View
+                  style={[
+                    styles.goalProgressFill,
+                    { width: `${goalProgress}%` },
+                  ]}
+                />
               </View>
 
               <View style={styles.todoList}>
-                <TodoItem done label="Làm 1 quiz" />
-                <TodoItem done={false} label="Ôn 10 flashcards" />
-                <TodoItem done={false} label="Đạt 50 XP" />
+                {goals.map((goal) => (
+                  <TodoItem key={goal.label} done={goal.done} label={goal.label} />
+                ))}
               </View>
+
+              <TouchableOpacity
+                style={styles.goalAction}
+                activeOpacity={0.82}
+                onPress={() => router.push(primaryLearningRoute)}
+              >
+                <Text style={styles.goalActionText}>Bắt đầu mục tiêu</Text>
+                <Ionicons name="arrow-forward" size={16} color="#4F46E5" />
+              </TouchableOpacity>
             </AppCard>
           </View>
 
           {/* Stats */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Thống kê nhanh</Text>
+            <Text style={styles.sectionTitle} className="font-medium">Thống kê nhanh</Text>
 
             <View style={styles.statsGrid}>
               <StatBox label="Hoàn thành" value="24" icon="checkmark-done" />
@@ -276,7 +358,6 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
   headerText: {
     flex: 1,
@@ -285,12 +366,10 @@ const styles = StyleSheet.create({
   greeting: {
     color: "#64748B",
     fontSize: 15,
-    fontWeight: "500",
   },
   userName: {
     color: "#0F172A",
     fontSize: 27,
-    fontWeight: "800",
     marginTop: 2,
   },
   headerSub: {
@@ -298,25 +377,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 5,
   },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    borderWidth: 1,
-    borderColor: "rgba(226,232,240,0.9)",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  avatarImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-  },
-
   heroCard: {
     marginBottom: 24,
+    marginHorizontal: 12,
   },
   heroTop: {
     flexDirection: "row",
@@ -336,7 +399,6 @@ const styles = StyleSheet.create({
   heroBadgeText: {
     color: "#4F46E5",
     fontSize: 11,
-    fontWeight: "800",
     letterSpacing: 0.5,
   },
   streakPill: {
@@ -351,12 +413,10 @@ const styles = StyleSheet.create({
   streakText: {
     color: "#B45309",
     fontSize: 12,
-    fontWeight: "700",
   },
   heroTitle: {
     marginTop: 16,
     fontSize: 25,
-    fontWeight: "800",
     color: "#0F172A",
   },
   heroMeta: {
@@ -364,28 +424,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#64748B",
   },
-  progressRow: {
+  heroInsightRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 18,
+    gap: 10,
+    marginTop: 20,
   },
-  progressTrack: {
+  heroInsight: {
     flex: 1,
-    height: 9,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 999,
-    overflow: "hidden",
+    borderRadius: 16,
+    backgroundColor: "#fffffe",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 10,
+    paddingVertical: 12,
   },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#4F46E5",
-    borderRadius: 999,
+  heroInsightValue: {
+    color: "#0F172A",
+    fontSize: 18,
   },
-  progressText: {
-    color: "#4F46E5",
-    fontSize: 13,
-    fontWeight: "800",
+  heroInsightLabel: {
+    color: "#64748B",
+    fontSize: 11,
+    marginTop: 4,
   },
   heroButton: {
     marginTop: 22,
@@ -399,7 +459,6 @@ const styles = StyleSheet.create({
   },
   heroButtonText: {
     color: "#FFFFFF",
-    fontWeight: "800",
     fontSize: 15,
   },
 
@@ -410,7 +469,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: "#0F172A",
     fontSize: 18,
-    fontWeight: "800",
     marginBottom: 14,
   },
 
@@ -500,6 +558,21 @@ const styles = StyleSheet.create({
   },
   todoTextDone: {
     color: "#0F172A",
+  },
+  goalAction: {
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#EEF2FF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 18,
+  },
+  goalActionText: {
+    color: "#4F46E5",
+    fontSize: 14,
+    fontWeight: "800",
   },
 
   statsGrid: {

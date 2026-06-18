@@ -69,6 +69,35 @@ export interface CreateFlashcardSetPayload {
   source_type: "manual";
 }
 
+export interface AIFlashcardFromPromptPayload {
+  prompt: string;
+  number_of_cards: number;
+  title: string;
+  description: string | null;
+  category_id: number | null;
+  visibility: FlashcardSetVisibility;
+}
+
+export interface AIFlashcardFromFilePayload {
+  file: {
+    uri: string;
+    name: string;
+    type: string;
+  };
+  number_of_cards: number;
+  title: string;
+  description: string | null;
+  category_id: number | null;
+  visibility: FlashcardSetVisibility;
+}
+
+export interface AIFlashcardGenerationResponse {
+  success?: boolean;
+  message: string;
+  data: FlashcardDeck;
+  error?: string;
+}
+
 export interface CreateFlashcardCardPayload {
   term: string;
   definition: string;

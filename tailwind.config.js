@@ -58,9 +58,14 @@ module.exports = {
         success: '#10B981',
       },
       fontFamily: {
-        sans:   ['Inter', 'System'],
-        medium: ['Inter-Medium', 'System'],
-        bold:   ['Inter-Bold', 'System'],
+        sans: ['Lexend-Regular', 'System'],
+        thin: ['Lexend-Thin', 'System'],
+        light: ['Lexend-Light', 'System'],
+        medium: ['Lexend-Medium', 'System'],
+        semibold: ['Lexend-SemiBold', 'System'],
+        bold: ['Lexend-Bold', 'System'],
+        extrabold: ['Lexend-ExtraBold', 'System'],
+        black: ['Lexend-Black', 'System'],
       },
       borderRadius: {
         sm:  '6px',

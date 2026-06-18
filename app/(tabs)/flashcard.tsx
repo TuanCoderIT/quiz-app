@@ -1,19 +1,20 @@
+import { AppCard } from "@/src/components";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppBackground } from "../../src/components/common/AppBackground";
 import { useFlashcardStore } from "../../src/features/flashcard/store";
@@ -23,11 +24,10 @@ import {
   FlashcardSetVisibility,
   FlashcardSourceType,
 } from "../../src/features/flashcard/types";
-import { AppCard } from "@/src/components";
+import { DeckCard } from "@/src/features/flashcard/components/DeckCard";
 
 const ALL_FILTER = "Tất cả";
 const DUE_FILTER = "Cần ôn";
-const FLASHCARD_PRIMARY = "#4F46E5";
 
 const getProgress = (deck: FlashcardDeck) =>
   deck.cardCount > 0
@@ -95,131 +95,6 @@ const FeedbackCard = ({
   </View>
 );
 
-const DeckCard = ({ deck, index }: { deck: FlashcardDeck; index: number }) => {
-  const router = useRouter();
-  const progress = getProgress(deck);
-  const deleteDeck = useFlashcardStore((state) => state.deleteDeck);
-  const fetchDecks = useFlashcardStore((state) => state.fetchDecks);
-
-  const openDeck = () => router.push(`/flashcard/${deck.id}`);
-  const startStudy = () =>
-    router.push({ pathname: "/flashcard/study", params: { id: deck.id } });
-  const editDeck = () =>
-    router.push({
-      pathname: "/flashcard/edit" as never,
-      params: { id: deck.id },
-    });
-  const handleDelete = () => {
-    Alert.alert(
-      "Xóa bộ thẻ?",
-      "Bộ thẻ sẽ bị xóa hoặc lưu trữ nếu backend không hỗ trợ xóa.",
-      [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteDeck(deck.id);
-              void fetchDecks();
-            } catch {
-              Alert.alert("Không xóa được", "Vui lòng thử lại sau.");
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  return (
-    <Animated.View
-      entering={FadeInUp.delay(index * 90).duration(500)}
-      style={styles.deckCardWrapper}
-    >
-      <AppCard>
-        <View style={styles.deckHeader}>
-          <View style={styles.deckHeaderText}>
-            <Text style={styles.deckTitle} numberOfLines={1}>
-              {deck.title}
-            </Text>
-            <Text style={styles.deckDescription}>{deck.cardCount} thẻ</Text>
-          </View>
-          <View style={styles.headerActionRow}>
-            <Pressable
-              onPress={editDeck}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.iconActionButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Ionicons name="create-outline" size={18} color="#0F172A" />
-            </Pressable>
-            <Pressable
-              onPress={handleDelete}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.iconDangerButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Ionicons name="trash-outline" size={19} color="#EF4444" />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressText}>{progress}% đã thuộc</Text>
-          <Text style={styles.progressMeta}>
-            {deck.masteredCount}/{deck.cardCount} thẻ
-          </Text>
-        </View>
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${progress}%`, backgroundColor: FLASHCARD_PRIMARY },
-            ]}
-          />
-        </View>
-
-        <View style={styles.cardActionRow}>
-          <Pressable
-            onPress={openDeck}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.detailButton,
-              pressed && { opacity: 0.85 },
-            ]}
-          >
-            <Text style={styles.detailButtonText}>Chi tiết</Text>
-            <Ionicons name="chevron-forward" size={16} color="#0F172A" />
-          </Pressable>
-
-          <Pressable
-            onPress={startStudy}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.startButton,
-              pressed && { opacity: 0.9 },
-            ]}
-          >
-            <LinearGradient
-              colors={["#4F46E5", "#7C3AED"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.startButtonGradient}
-            >
-              <Text style={styles.startButtonText}>Bắt đầu</Text>
-              <Ionicons name="play" size={15} color="#FFFFFF" />
-            </LinearGradient>
-          </Pressable>
-        </View>
-      </AppCard>
-    </Animated.View>
-  );
-};
-
 export default function FlashcardTab() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState(ALL_FILTER);
@@ -233,6 +108,7 @@ export default function FlashcardTab() {
     FlashcardSetVisibility | undefined
   >();
   const [searchQuery, setSearchQuery] = useState("");
+  const [createMenuVisible, setCreateMenuVisible] = useState(false);
 
   const decks = useFlashcardStore((state) => state.decks);
   const isLoading = useFlashcardStore((state) => state.isLoading);
@@ -321,7 +197,17 @@ export default function FlashcardTab() {
   }, [activeFilter, decks, searchQuery]);
 
   const handleCreateDeck = () => {
+    setCreateMenuVisible(false);
     router.push("/flashcard/create");
+  };
+
+  const handleCreateAIDeck = () => {
+    setCreateMenuVisible(false);
+    router.push("/flashcard/ai-create");
+  };
+
+  const openCreateMenu = () => {
+    setCreateMenuVisible(true);
   };
 
   const startFeaturedDeck = () => {
@@ -368,16 +254,19 @@ export default function FlashcardTab() {
                 Theo dõi tiến độ và quay lại đúng bộ thẻ cần ôn.
               </Text>
             </View>
-            <Pressable
-              onPress={handleCreateDeck}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.addButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Ionicons name="add" size={26} color="#4F46E5" />
-            </Pressable>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={openCreateMenu}
+                accessibilityRole="button"
+                accessibilityLabel="Mở lựa chọn tạo bộ thẻ"
+                style={({ pressed }) => [
+                  styles.addButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Ionicons name="add" size={26} color="#4F46E5" />
+              </Pressable>
+            </View>
           </View>
 
           <AppCard style={styles.heroCard}>
@@ -654,6 +543,79 @@ export default function FlashcardTab() {
             )}
           </View>
         </ScrollView>
+
+        <Modal
+          visible={createMenuVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCreateMenuVisible(false)}
+        >
+          <View style={styles.createMenuOverlay}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.createMenuBackdrop}
+              onPress={() => setCreateMenuVisible(false)}
+            />
+
+            <View style={styles.createMenu}>
+              <View style={styles.createMenuHeader}>
+                <View>
+                  <Text style={styles.createMenuHeading}>Tạo bộ thẻ</Text>
+                  <Text style={styles.createMenuSubheading}>
+                    Chọn cách tạo phù hợp với nội dung của bạn
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setCreateMenuVisible(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Đóng menu tạo bộ thẻ"
+                  style={styles.createMenuClose}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleCreateDeck}
+                accessibilityRole="button"
+                style={styles.createMenuOption}
+                activeOpacity={0.78}
+              >
+                <View style={styles.createMenuIcon}>
+                  <Ionicons name="create-outline" size={19} color="#4F46E5" />
+                </View>
+                <View style={styles.createMenuCopy}>
+                  <Text style={styles.createMenuTitle}>Tạo thủ công</Text>
+                  <Text style={styles.createMenuText}>
+                    Tự nhập thuật ngữ và định nghĩa
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <View style={styles.createMenuDivider} />
+
+              <TouchableOpacity
+                onPress={handleCreateAIDeck}
+                accessibilityRole="button"
+                style={styles.createMenuOption}
+                activeOpacity={0.78}
+              >
+                <View style={[styles.createMenuIcon, styles.aiMenuIcon]}>
+                  <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+                </View>
+                <View style={styles.createMenuCopy}>
+                  <Text style={styles.createMenuTitle}>Tạo bằng AI</Text>
+                  <Text style={styles.createMenuText}>
+                    Sinh bộ thẻ từ prompt hoặc file
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </AppBackground>
   );
@@ -710,6 +672,99 @@ const styles = StyleSheet.create({
     borderColor: "rgba(226,232,240,0.7)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  createMenuOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+  },
+  createMenuBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15,23,42,0.28)",
+  },
+  createMenu: {
+    width: "100%",
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(226,232,240,0.9)",
+    paddingTop: 12,
+    paddingBottom: 8,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.14,
+    shadowRadius: 26,
+    elevation: 8,
+  },
+  createMenuHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  createMenuHeading: {
+    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  createMenuSubheading: {
+    color: "#64748B",
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  createMenuClose: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+  },
+  createMenuOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 74,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  createMenuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEF2FF",
+    marginRight: 10,
+  },
+  aiMenuIcon: {
+    backgroundColor: "#4F46E5",
+  },
+  createMenuCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  createMenuTitle: {
+    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  createMenuText: {
+    color: "#64748B",
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  createMenuDivider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 14,
   },
 
   heroCard: {
@@ -973,49 +1028,43 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   cardActionRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column",
     gap: 10,
     marginTop: 16,
   },
-  detailButton: {
-    flex: 1,
+
+  actionButton: {
+    width: "100%",
     height: 48,
     borderRadius: 16,
-    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  startActionButton: {
+    backgroundColor: "#4F46E5",
+  },
+
+  detailActionButton: {
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+    borderColor: "#4F46E5",
   },
 
-  startButton: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: "hidden",
+  pressedButton: {
+    opacity: 0.85,
   },
 
-  startButtonGradient: {
-    height: 48,
-    borderRadius: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  detailButtonText: {
-    color: "#000000",
-    fontSize: 15,
-    fontWeight: "700",
-    marginRight: 4,
-  },
   startButtonText: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
-    marginRight: 6,
+  },
+
+  detailButtonText: {
+    color: "#4F46E5",
+    fontSize: 15,
+    fontWeight: "700",
   },
   iconActionButton: {
     width: 38,

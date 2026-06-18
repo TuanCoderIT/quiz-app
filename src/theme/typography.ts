@@ -1,9 +1,13 @@
-import { Platform } from 'react-native';
-
 export const FontFamily = {
-  regular: Platform.select({ ios: 'System', android: 'Roboto', default: 'System' }),
-  medium:  Platform.select({ ios: 'System', android: 'Roboto-Medium', default: 'System' }),
-  bold:    Platform.select({ ios: 'System', android: 'Roboto-Bold', default: 'System' }),
+  thin: "Lexend-Thin",
+  extraLight: "Lexend-ExtraLight",
+  light: "Lexend-Light",
+  regular: "Lexend-Regular",
+  medium: "Lexend-Medium",
+  semibold: "Lexend-SemiBold",
+  bold: "Lexend-Bold",
+  extrabold: "Lexend-ExtraBold",
+  black: "Lexend-Black",
 } as const;
 
 export const FontSize = {
@@ -35,13 +39,13 @@ export const LineHeight = {
 
 // ─── Text Styles (composable) ─────────────────────────────────────────────────
 export const TextStyles = {
-  h1: { fontSize: FontSize['4xl'], fontWeight: FontWeight.bold,    lineHeight: FontSize['4xl'] * LineHeight.tight },
-  h2: { fontSize: FontSize['3xl'], fontWeight: FontWeight.bold,    lineHeight: FontSize['3xl'] * LineHeight.tight },
-  h3: { fontSize: FontSize['2xl'], fontWeight: FontWeight.semibold, lineHeight: FontSize['2xl'] * LineHeight.tight },
-  h4: { fontSize: FontSize.xl,     fontWeight: FontWeight.semibold, lineHeight: FontSize.xl * LineHeight.normal },
-  body:  { fontSize: FontSize.base, fontWeight: FontWeight.regular, lineHeight: FontSize.base * LineHeight.normal },
-  bodySmall: { fontSize: FontSize.sm, fontWeight: FontWeight.regular, lineHeight: FontSize.sm * LineHeight.normal },
-  caption: { fontSize: FontSize.xs,  fontWeight: FontWeight.regular, lineHeight: FontSize.xs * LineHeight.normal },
-  button:  { fontSize: FontSize.base, fontWeight: FontWeight.semibold },
-  label:   { fontSize: FontSize.sm,   fontWeight: FontWeight.medium },
+  h1: { fontFamily: FontFamily.bold, fontSize: FontSize['4xl'], lineHeight: FontSize['4xl'] * LineHeight.tight },
+  h2: { fontFamily: FontFamily.bold, fontSize: FontSize['3xl'], lineHeight: FontSize['3xl'] * LineHeight.tight },
+  h3: { fontFamily: FontFamily.semibold, fontSize: FontSize['2xl'], lineHeight: FontSize['2xl'] * LineHeight.tight },
+  h4: { fontFamily: FontFamily.semibold, fontSize: FontSize.xl, lineHeight: FontSize.xl * LineHeight.normal },
+  body: { fontFamily: FontFamily.regular, fontSize: FontSize.base, lineHeight: FontSize.base * LineHeight.normal },
+  bodySmall: { fontFamily: FontFamily.regular, fontSize: FontSize.sm, lineHeight: FontSize.sm * LineHeight.normal },
+  caption: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, lineHeight: FontSize.xs * LineHeight.normal },
+  button: { fontFamily: FontFamily.semibold, fontSize: FontSize.base },
+  label: { fontFamily: FontFamily.medium, fontSize: FontSize.sm },
 } as const;

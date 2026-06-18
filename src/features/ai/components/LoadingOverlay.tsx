@@ -11,6 +11,9 @@ import { Colors } from "../../../theme";
 
 interface LoadingOverlayProps {
   visible: boolean;
+  title?: string;
+  subtitle?: string;
+  messages?: string[];
 }
 
 const LOADING_MESSAGES = [
@@ -24,7 +27,12 @@ const LOADING_MESSAGES = [
   "Sắp hoàn tất! Đang đồng bộ hóa dữ liệu...",
 ];
 
-export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible }) => {
+export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
+  visible,
+  title = "Đang tạo Quiz bằng AI",
+  subtitle = "Quá trình này thường mất khoảng 15-30 giây. Vui lòng không đóng ứng dụng hoặc quay lại.",
+  messages = LOADING_MESSAGES,
+}) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
@@ -34,11 +42,11 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible }) => {
     }
 
     const timer = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+      setMessageIndex((prev) => (prev + 1) % messages.length);
     }, 4000);
 
     return () => clearInterval(timer);
-  }, [visible]);
+  }, [messages.length, visible]);
 
   return (
     <Modal
@@ -51,17 +59,15 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible }) => {
         <View style={styles.card}>
           <ActivityIndicator size="large" color="#4F46E5" style={styles.spinner} />
           
-          <Text style={styles.title}>Đang tạo Quiz bằng AI</Text>
+          <Text style={styles.title}>{title}</Text>
           
-          <Text style={styles.subtitle}>
-            Quá trình này thường mất khoảng 15-30 giây. Vui lòng không đóng ứng dụng hoặc quay lại.
-          </Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
 
           <View style={styles.divider} />
 
           <View style={styles.messageBox}>
             <Text style={styles.messageText}>
-              {LOADING_MESSAGES[messageIndex]}
+              {messages[messageIndex]}
             </Text>
           </View>
         </View>

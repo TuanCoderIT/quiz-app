@@ -2,6 +2,7 @@
 
 import { Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useNotificationStore } from "../store";
 
 type Props = {
@@ -19,7 +20,19 @@ export function NotificationBadge({ size = "md" }: Props) {
       className="relative items-center justify-center"
       activeOpacity={0.8}
     >
-      <Text className={size === "sm" ? "text-2xl" : "text-3xl"}>🔔</Text>
+      <View
+        className={
+          size === "sm"
+            ? "h-10 w-10 rounded-full bg-white/85 border border-slate-200 items-center justify-center"
+            : "h-12 w-12 rounded-full bg-white/85 border border-slate-200 items-center justify-center"
+        }
+      >
+        <Ionicons
+          name="notifications-outline"
+          size={size === "sm" ? 21 : 24}
+          color="#4F46E5"
+        />
+      </View>
 
       {unreadCount > 0 && (
         <View className="absolute -right-2 -top-1 min-w-[20px] h-5 rounded-full bg-red-500 items-center justify-center px-1">
